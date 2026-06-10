@@ -8,11 +8,40 @@ require_once __DIR__ . '/db.php';
 /**
  * Obtener todos los KPIs financieros de un período específico (YYYY-MM)
  */
-function getDashboardKPIs($pdo, $periodo) {
-    // Extraer el año del período (formato YYYY de YYYY-MM)
+function getDashboardKPIs($pdo, $periodo, $filtro = 'mes') {
     $anio = substr($periodo, 0, 4);
+    $mes = (int)substr($periodo, 5, 2);
     
-    // 1. Obtener Presupuesto del año para prorratear entre 12 y su meta de ahorro
+    // Condición de fecha dinámica y factor de presupuesto
+    if ($filtro === 'anio') {
+        $fecha_cond = "strftime('%Y', fecha) = :anio";
+        $params = [':anio' => $anio];
+        $presupuesto_factor = 1.0;
+    } elseif ($filtro === 'trimestre') {
+        $trimestre = ceil($mes / 3);
+        $mes_inicio = str_pad(($trimestre - 1) * 3 + 1, 2, '0', STR_PAD_LEFT);
+        $mes_fin = str_pad($trimestre * 3, 2, '0', STR_PAD_LEFT);
+        $fecha_cond = "strftime('%Y', fecha) = :anio AND strftime('%m', fecha) BETWEEN :m_ini AND :m_fin";
+        $params = [':anio' => $anio, ':m_ini' => $mes_inicio, ':m_fin' => $mes_fin];
+        $presupuesto_factor = 3.0 / 12.0;
+    } elseif ($filtro === 'dia') {
+        $dia_actual = (int)date('d');
+        if ($anio == date('Y') && $mes == date('m')) {
+            $dia = str_pad($dia_actual, 2, '0', STR_PAD_LEFT);
+        } else {
+            $dia = '01'; // Fallback
+        }
+        $fecha_exacta = "$anio-" . str_pad($mes, 2, '0', STR_PAD_LEFT) . "-$dia";
+        $fecha_cond = "strftime('%Y-%m-%d', fecha) = :fecha";
+        $params = [':fecha' => $fecha_exacta];
+        $presupuesto_factor = 1.0 / 365.0;
+    } else {
+        // 'mes' o 'semana'
+        $fecha_cond = "strftime('%Y-%m', fecha) = :periodo";
+        $params = [':periodo' => substr($periodo, 0, 7)];
+        $presupuesto_factor = 1.0 / 12.0;
+    }
+
     $stmt = $pdo->prepare("SELECT total, meta_ahorro_pct, meta_ahorro_monto FROM presupuestos WHERE periodo = :anio");
     $stmt->execute([':anio' => $anio]);
     $presupuestoRow = $stmt->fetch();
@@ -20,69 +49,38 @@ function getDashboardKPIs($pdo, $periodo) {
     $metaAhorroPct   = 0.0;
     $metaAhorroMonto = 0.0;
     
-    // Agregar columna si no existe (compatibilidad)
     try { $pdo->exec("ALTER TABLE presupuestos ADD COLUMN meta_ahorro_monto REAL DEFAULT 0"); } catch (Exception $e) {}
     
     if ($presupuestoRow !== false) {
         $presupuestoAnual    = (float)$presupuestoRow['total'];
-        $presupuestoTotal    = $presupuestoAnual / 12.0; // Prorrateado
+        $presupuestoTotal    = $presupuestoAnual * $presupuesto_factor;
         $metaAhorroPct       = (float)($presupuestoRow['meta_ahorro_pct'] ?? 0.0);
         $metaAhorroMonto     = (float)($presupuestoRow['meta_ahorro_monto'] ?? 0.0);
     } else {
-        // Fallback: Buscar presupuesto tradicional de mes específico
-        $stmt = $pdo->prepare("SELECT total, meta_ahorro_pct, meta_ahorro_monto FROM presupuestos WHERE periodo = :periodo");
-        $stmt->execute([':periodo' => $periodo]);
-        $presupuestoMensualEspecifico = $stmt->fetch();
-        if ($presupuestoMensualEspecifico !== false) {
-            $presupuestoTotal    = (float)$presupuestoMensualEspecifico['total'];
-            $presupuestoAnual    = $presupuestoTotal * 12.0;
-            $metaAhorroPct       = (float)($presupuestoMensualEspecifico['meta_ahorro_pct'] ?? 0.0);
-            $metaAhorroMonto     = (float)($presupuestoMensualEspecifico['meta_ahorro_monto'] ?? 0.0);
-        } else {
-            $presupuestoTotal  = 0.0;
-            $presupuestoAnual  = 0.0;
-        }
+        $presupuestoTotal  = 0.0;
+        $presupuestoAnual  = 0.0;
     }
     
-    // 2. Obtener Gasto Total del período (mes actual)
-    $stmt = $pdo->prepare("
-        SELECT SUM(monto) FROM gastos 
-        WHERE strftime('%Y-%m', fecha) = :periodo
-    ");
-    $stmt->execute([':periodo' => $periodo]);
-    $gastoTotal = $stmt->fetchColumn();
-    $gastoTotal = $gastoTotal !== false ? (float)$gastoTotal : 0.0;
+    $stmt = $pdo->prepare("SELECT SUM(monto) FROM gastos WHERE $fecha_cond");
+    $stmt->execute($params);
+    $gastoTotal = (float)$stmt->fetchColumn();
     
-    // 3. Obtener Ingreso Total del período (mes actual)
-    $stmt = $pdo->prepare("
-        SELECT SUM(monto) FROM ingresos 
-        WHERE strftime('%Y-%m', fecha) = :periodo
-    ");
-    $stmt->execute([':periodo' => $periodo]);
-    $ingresoTotal = $stmt->fetchColumn();
-    $ingresoTotal = $ingresoTotal !== false ? (float)$ingresoTotal : 0.0;
+    $stmt = $pdo->prepare("SELECT SUM(monto) FROM ingresos WHERE $fecha_cond");
+    $stmt->execute($params);
+    $ingresoTotal = (float)$stmt->fetchColumn();
     
-    // 4. Obtener Ingreso Histórico y Gasto Histórico para Eficiencia Global
     $stmt = $pdo->query("SELECT SUM(monto) FROM ingresos");
-    $ingresoHistorico = $stmt->fetchColumn();
-    $ingresoHistorico = $ingresoHistorico !== false ? (float)$ingresoHistorico : 0.0;
+    $ingresoHistorico = (float)$stmt->fetchColumn();
+
     
     $stmt = $pdo->query("SELECT SUM(monto) FROM gastos");
-    $gastoHistorico = $stmt->fetchColumn();
-    $gastoHistorico = $gastoHistorico !== false ? (float)$gastoHistorico : 0.0;
+    $gastoHistorico = (float)$stmt->fetchColumn();
     
-    // 5. Cálculos de Indicadores
-    $porcentajeUsado = 0.0;
-    if ($presupuestoTotal > 0) {
-        $porcentajeUsado = ($gastoTotal / $presupuestoTotal) * 100;
-    }
+    $dineroRestante = max(0, $presupuestoTotal - $gastoTotal);
+    $porcentajeUsado = $presupuestoTotal > 0 ? ($gastoTotal / $presupuestoTotal) * 100 : 0;
     
-    $dineroRestante = $presupuestoTotal - $gastoTotal;
-    
-    // Desviación presupuestal = gasto real - gasto planificado (presupuesto)
     $desviacion = $gastoTotal - $presupuestoTotal;
     
-    // Semáforo de Consumo
     $semaforo = 'verde';
     if ($porcentajeUsado >= 95) {
         $semaforo = 'rojo';
@@ -90,77 +88,38 @@ function getDashboardKPIs($pdo, $periodo) {
         $semaforo = 'amarillo';
     }
     
-    // Relación Rendimiento vs Gasto (Eficiencia = Ingresos Históricos / Gastos Históricos)
-    // Coeficiente: > 1 indica que entra más dinero del que sale.
     $eficiencia = 0.0;
     if ($gastoHistorico > 0) {
         $eficiencia = $ingresoHistorico / $gastoHistorico;
     } elseif ($ingresoHistorico > 0) {
-        $eficiencia = 10.0; // Alto rendimiento por tener 0 gastos
+        $eficiencia = 10.0;
     }
     
-    // --- LÓGICA DE PROYECCIÓN MENSUAL (FORECAST / PRONÓSTICO) ---
-    $anioActual = (int)date('Y');
-    $mesActual = (int)date('m');
-    $diaActual = (int)date('d');
+    $diasTranscurridos = (int)date('d');
+    $diasMes = cal_days_in_month(CAL_GREGORIAN, date('m'), date('Y'));
+    $gastoDiarioPromedio = $diasTranscurridos > 0 ? $gastoTotal / $diasTranscurridos : 0;
+    $proyeccionFinMes = $gastoDiarioPromedio * $diasMes;
+    $riesgoSobrecosto = $presupuestoTotal > 0 && $proyeccionFinMes > $presupuestoTotal;
     
-    $selAnio = (int)substr($periodo, 0, 4);
-    $selMes = (int)substr($periodo, 5, 2);
-    
-    $totalDiasMes = cal_days_in_month(CAL_GREGORIAN, $selMes, $selAnio);
-    
-    if ($selAnio < $anioActual || ($selAnio == $anioActual && $selMes < $mesActual)) {
-        // Mes en el pasado: completo
-        $diasTranscurridos = $totalDiasMes;
-    } elseif ($selAnio == $anioActual && $selMes == $mesActual) {
-        // Mes actual: días transcurridos hasta la fecha de hoy
-        $diasTranscurridos = $diaActual;
-    } else {
-        // Mes futuro
-        $diasTranscurridos = 0;
-    }
-    
-    $promedioDiario = 0.0;
-    $proyeccionFinMes = 0.0;
-    if ($diasTranscurridos > 0) {
-        $promedioDiario = $gastoTotal / $diasTranscurridos;
-        $proyeccionFinMes = $promedioDiario * $totalDiasMes;
-    } else {
-        // Si es futuro, la proyección inicial es cero
-        $proyeccionFinMes = 0.0;
-    }
-    
-    // Si la proyección supera el límite mensual prorrateado, hay riesgo latente de sobrecosto
-    $riesgoSobrecosto = false;
-    if ($presupuestoTotal > 0 && $proyeccionFinMes > $presupuestoTotal) {
-        $riesgoSobrecosto = true;
-    }
-    
-    // Gasto anual acumulado real (para comparar contra meta de ahorro)
     $stmtAnual = $pdo->prepare("SELECT COALESCE(SUM(monto), 0) FROM gastos WHERE strftime('%Y', fecha) = :anio");
     $stmtAnual->execute([':anio' => $anio]);
     $gastoAnualAcumulado = (float)$stmtAnual->fetchColumn();
     
-    // Si meta_ahorro_monto es 0 pero pct > 0, calcular monto equivalente
-    if ($metaAhorroMonto == 0.0 && $metaAhorroPct > 0 && $presupuestoAnual > 0) {
-        $metaAhorroMonto = $presupuestoAnual * ($metaAhorroPct / 100.0);
-    }
-    
     return [
-        'presupuesto'           => $presupuestoTotal,
-        'presupuesto_anual'     => $presupuestoAnual,
+        'presupuesto'           => round($presupuestoTotal, 2),
+        'presupuesto_anual'     => round($presupuestoAnual, 2),
         'meta_ahorro_pct'       => $metaAhorroPct,
         'meta_ahorro_monto'     => round($metaAhorroMonto, 2),
         'gasto_anual_acumulado' => round($gastoAnualAcumulado, 2),
-        'gasto_total'           => $gastoTotal,
-        'ingreso_total'         => $ingresoTotal,
+        'gasto_total'           => round($gastoTotal, 2),
+        'ingreso_total'         => round($ingresoTotal, 2),
         'porcentaje_usado'      => round($porcentajeUsado, 1),
-        'dinero_restante'       => $dineroRestante,
+        'dinero_restante'       => round($dineroRestante, 2),
         'desviacion'            => $desviacion,
         'semaforo'              => $semaforo,
         'eficiencia'            => round($eficiencia, 2),
         'periodo'               => $periodo,
-        'promedio_diario'       => round($promedioDiario, 2),
+        'promedio_diario'       => round($gastoDiarioPromedio, 2),
         'proyeccion_fin_mes'    => round($proyeccionFinMes, 2),
         'riesgo_sobrecosto'     => $riesgoSobrecosto
     ];
@@ -655,8 +614,8 @@ function getAvancePorProceso($pdo, $anio, $filtro = 'anio', $mes = null) {
 /**
  * Desviación presupuestaria del período (esperado pro-rata vs ejecutado real)
  */
-function getDesviacionPresupuestaria($pdo, $periodo) {
-    $kpis = getDashboardKPIs($pdo, $periodo);
+function getDesviacionPresupuestaria($pdo, $periodo, $filtro = 'mes') {
+    $kpis = getDashboardKPIs($pdo, $periodo, $filtro);
     $anio = substr($periodo, 0, 4);
     $mes  = (int)substr($periodo, 5, 2);
     $dia  = (int)date('d');

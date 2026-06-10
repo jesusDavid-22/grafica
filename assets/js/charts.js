@@ -12,15 +12,18 @@ const AppCharts = {
     metaVsEjec:  null,
     comparativo: null,
 
+    mciAvance:   null,
+    mciBarHorizontal: null,
+
     // ──────────────────────────────────────────────
     //  INICIALIZACIÓN
     // ──────────────────────────────────────────────
     init() {
-        const ids  = ['chart-gauge-container','chart-trend-container','chart-bar-container','chart-donut-container','chart-radar-container','chart-metavs-container','chart-comparativo-container'];
-        const keys = ['gauge','trend','bar','donut','radar','metaVsEjec','comparativo'];
+        const ids  = ['chart-gauge-container','chart-trend-container','chart-bar-container','chart-donut-container','chart-metavs-container','chart-comparativo-container', 'chart-mci-avance-container', 'chart-mci-bar-horizontal-container'];
+        const keys = ['gauge','trend','bar','donut','metaVsEjec','comparativo', 'mciAvance', 'mciBarHorizontal'];
         ids.forEach((id, i) => {
             const el = document.getElementById(id);
-            if (el) this[keys[i]] = echarts.init(el, null, { renderer: 'canvas' });
+            if (el) this[keys[i]] = echarts.init(el, null, { renderer: 'svg' });
         });
 
         window.addEventListener('resize', () => {
@@ -28,9 +31,10 @@ const AppCharts = {
             this.trend?.resize();
             this.bar?.resize();
             this.donut?.resize();
-            this.radar?.resize();
             this.metaVsEjec?.resize();
             this.comparativo?.resize();
+            this.mciAvance?.resize();
+            this.mciBarHorizontal?.resize();
         });
 
         // Forzar resize inicial tras el primer paint para que ECharts detecte las dimensiones reales
@@ -39,9 +43,10 @@ const AppCharts = {
             this.trend?.resize();
             this.bar?.resize();
             this.donut?.resize();
-            this.radar?.resize();
             this.metaVsEjec?.resize();
             this.comparativo?.resize();
+            this.mciAvance?.resize();
+            this.mciBarHorizontal?.resize();
         }, 200);
     },
 
@@ -121,6 +126,190 @@ const AppCharts = {
             ]
         });
         setTimeout(() => this.comparativo?.resize(), 100);
+    },
+
+    // ────────────────────────────────────────────────
+    //  MCI AVANCE $ PROCESO (Barras + Línea)
+    // ────────────────────────────────────────────────
+    updateMciAvance(detalles, totales) {
+        if (!this.mciAvance || !detalles) return;
+        
+        // Agregar "TOTAL" al final para replicar el Excel
+        const labels = detalles.map(d => d.nombre.toUpperCase()).concat(['TOTAL']);
+        const metas = detalles.map(d => d.mci_anual).concat([totales.mci_anual]);
+        const ejecutado = detalles.map(d => d.ejecutado).concat([totales.ejecutado]);
+
+        this.mciAvance.setOption({
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                backgroundColor: 'rgba(5,8,22,0.92)',
+                borderColor: 'rgba(99,102,241,0.3)',
+                textStyle: { color: '#F8FAFC' }
+            },
+            legend: {
+                data: ['META 2026', 'ACUMULADO MAYO'],
+                bottom: 0,
+                textStyle: { color: '#94A3B8', fontSize: 11, fontFamily: 'Outfit' }
+            },
+            grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: labels,
+                axisLabel: { color: '#64748b', fontSize: 9, fontFamily: 'Outfit', interval: 0, width: 80, overflow: 'break', rotate: 25 },
+                axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    color: '#64748b', fontSize: 10,
+                    formatter: v => '$' + v
+                },
+                splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+            },
+            series: [
+                {
+                    name: 'META 2026',
+                    type: 'bar',
+                    data: metas,
+                    barWidth: '30%',
+                    itemStyle: { color: '#2e7d32', borderRadius: [4,4,0,0] } // Verde oscuro tipo excel
+                },
+                {
+                    name: 'ACUMULADO MAYO',
+                    type: 'line',
+                    data: ejecutado,
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    itemStyle: { color: '#1976d2' }, // Azul claro tipo excel
+                    lineStyle: { color: '#1976d2', width: 3 },
+                    label: { show: true, position: 'top', color: '#1976d2', formatter: p => '$' + p.value, fontSize: 10 }
+                }
+            ]
+        }, true);
+    },
+
+    // ────────────────────────────────────────────────
+    //  MCI AVANCE POR PROCESO (Barras Horizontales)
+    // ────────────────────────────────────────────────
+    updateMciBarHorizontal(detalles) {
+        if (!this.mciBarHorizontal || !detalles) return;
+        
+        // El excel muestra de arriba hacia abajo, ECharts por defecto es de abajo hacia arriba en barras horizontales
+        // Invertimos el array para que aparezcan en el mismo orden visual
+        const rev = [...detalles].reverse();
+        const labels = rev.map(d => d.nombre.toUpperCase());
+        const mci = rev.map(d => d.mci_anual);
+        const estimado = rev.map(d => d.estimado);
+        const ejecutado = rev.map(d => d.ejecutado);
+
+        this.mciBarHorizontal.setOption({
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                borderColor: 'rgba(99, 102, 241, 0.3)',
+                borderWidth: 1,
+                padding: [12, 16],
+                textStyle: { color: '#F8FAFC', fontFamily: 'Outfit' },
+                extraCssText: 'box-shadow: 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(8px); border-radius: 12px;',
+                formatter(params) {
+                    let h = `<div style="font-weight:700;margin-bottom:8px;color:#a5b4fc;font-size:13px;">${params[0].axisValue}</div>`;
+                    params.forEach(p => {
+                        const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color.colorStops ? p.color.colorStops[0].color : p.color};margin-right:8px;box-shadow:0 0 5px ${p.color.colorStops ? p.color.colorStops[0].color : p.color};"></span>`;
+                        h += `<div style="display:flex;justify-content:space-between;gap:24px;font-size:12px;margin:4px 0">
+                            <span style="display:flex;align-items:center;color:#CBD5E1;">${dot}${p.seriesName}</span>
+                            <b style="color:#F8FAFC">$${Number(p.value).toLocaleString('es-MX',{minimumFractionDigits:0})}</b>
+                        </div>`;
+                    });
+                    return h;
+                }
+            },
+            legend: {
+                data: ['EJECUTADO', 'ESTIMADO A MAYO', 'MCI'],
+                bottom: 0,
+                textStyle: { color: '#94A3B8', fontSize: 11, fontFamily: 'Outfit' },
+                itemGap: 20,
+                icon: 'roundRect'
+            },
+            grid: { left: '2%', right: '6%', bottom: '15%', top: '5%', containLabel: true },
+            xAxis: {
+                type: 'value',
+                axisLabel: { 
+                    color: '#64748b', 
+                    fontSize: 10, 
+                    fontFamily: 'Outfit',
+                    formatter: v => {
+                        if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
+                        if (v >= 1000) return '$' + (v / 1000).toFixed(0) + 'K';
+                        return '$' + v;
+                    }
+                },
+                splitLine: { lineStyle: { color: 'rgba(255,255,255,0.03)', type: 'dashed' } }
+            },
+            yAxis: {
+                type: 'category',
+                data: labels,
+                axisLabel: { color: '#e2e8f0', fontSize: 10, fontFamily: 'Outfit', fontWeight: '500' },
+                axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
+                axisTick: { show: false }
+            },
+            series: [
+                {
+                    name: 'EJECUTADO',
+                    type: 'bar',
+                    data: ejecutado,
+                    barWidth: '20%',
+                    barGap: '15%',
+                    itemStyle: { 
+                        color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                            { offset: 0, color: '#10B981' }, // Verde brillante
+                            { offset: 1, color: '#047857' }  // Verde oscuro
+                        ]),
+                        borderRadius: [0,4,4,0],
+                        shadowBlur: 8,
+                        shadowColor: 'rgba(16, 185, 129, 0.4)'
+                    },
+                    emphasis: { itemStyle: { shadowBlur: 15, shadowColor: 'rgba(16, 185, 129, 0.8)' } }
+                },
+                {
+                    name: 'ESTIMADO A MAYO',
+                    type: 'bar',
+                    data: estimado,
+                    barWidth: '20%',
+                    barGap: '15%',
+                    itemStyle: { 
+                        color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                            { offset: 0, color: '#F59E0B' }, // Ambar
+                            { offset: 1, color: '#B45309' }  // Naranja oscuro
+                        ]),
+                        borderRadius: [0,4,4,0],
+                        shadowBlur: 8,
+                        shadowColor: 'rgba(245, 158, 11, 0.4)'
+                    },
+                    emphasis: { itemStyle: { shadowBlur: 15, shadowColor: 'rgba(245, 158, 11, 0.8)' } }
+                },
+                {
+                    name: 'MCI',
+                    type: 'bar',
+                    data: mci,
+                    barWidth: '20%',
+                    barGap: '15%',
+                    itemStyle: { 
+                        color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                            { offset: 0, color: '#6366F1' }, // Indigo
+                            { offset: 1, color: '#4338CA' }  // Indigo oscuro
+                        ]),
+                        borderRadius: [0,4,4,0],
+                        shadowBlur: 8,
+                        shadowColor: 'rgba(99, 102, 241, 0.4)'
+                    },
+                    emphasis: { itemStyle: { shadowBlur: 15, shadowColor: 'rgba(99, 102, 241, 0.8)' } }
+                }
+            ]
+        }, true);
     },
 
     // ──────────────────────────────────────────────
@@ -745,7 +934,7 @@ const AppCharts = {
                     color:'#94A3B8', 
                     fontFamily:'Outfit', 
                     fontSize:10,
-                    formatter: p => `${(p.percent * 100).toFixed(0)}%`
+                    formatter: p => `${(p.percent || 0).toFixed(0)}%`
                 },
                 labelLine: { length:10, length2:8, lineStyle:{ color:'rgba(148,163,184,0.4)' } },
                 emphasis: {
@@ -1163,8 +1352,7 @@ const AppCharts = {
             { key:'trend',       name:'02 Tendencia de Gastos por Categoría'},
             { key:'bar',         name:'03 Histórico Mensual'                },
             { key:'donut',       name:'04 Distribución por Categorías'      },
-            { key:'radar',       name:'05 Radar de KPIs'                    },
-            { key:'metaVsEjec',  name:'06 Meta vs Ejecutado'                }
+            { key:'metaVsEjec',  name:'06 Presupuesto vs Real'              }
         ];
         showToast('⬇️ Descargando todas las gráficas...', 'info', 4000);
 

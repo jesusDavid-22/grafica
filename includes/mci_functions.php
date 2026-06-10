@@ -57,12 +57,20 @@ function getMatrizMCI($pdo, $anio) {
 }
 
 // 2. Obtener Tabla de Desviación por Categoría (Ejecutado vs Estimado vs MCI)
-function getDesviacionCategoriasMCI($pdo, $anio, $mes_limite = null) {
-    if (!$mes_limite) $mes_limite = (int)date('m');
+function getDesviacionCategoriasMCI($pdo, $periodo, $vista) {
+    $anio = substr($periodo, 0, 4);
+    $mes = (int)substr($periodo, 5, 2);
+    if (!$mes) $mes = (int)date('m');
+
+    if ($vista === 'anio') {
+        $mes_limite = 12;
+    } elseif ($vista === 'trimestre') {
+        $mes_limite = ceil($mes / 3) * 3;
+    } else { // mes o dia
+        $mes_limite = $mes;
+    }
     
-    // Para prorrateo: asumimos que la meta se divide en 12 meses.
-    // El "estimado a mayo" sería = Meta_Anual * (mes_limite / 12)
-    // Opcionalmente proporcional por días. Usaremos (mes_limite/12) para que empate con el excel.
+    $fraccion_anio = $mes_limite / 12.0;
     
     $stmt = $pdo->prepare("
         SELECT 
@@ -77,6 +85,7 @@ function getDesviacionCategoriasMCI($pdo, $anio, $mes_limite = null) {
             ) as ejecutado
         FROM categorias c
         LEFT JOIN metas_categoria mc ON c.id = mc.categoria_id AND mc.anio = :anio
+        WHERE c.id >= 11 AND c.id <= 16
         ORDER BY c.id
     ");
     $stmt->execute([':anio' => $anio, ':mes_limite' => $mes_limite]);
@@ -91,7 +100,7 @@ function getDesviacionCategoriasMCI($pdo, $anio, $mes_limite = null) {
         $meta = (float)$row['meta_anual'];
         $ejecutado = (float)$row['ejecutado'];
         
-        $estimado = $meta * ($mes_limite / 12.0);
+        $estimado = $meta * $fraccion_anio;
         $diferencia = $estimado - $ejecutado; 
         
         // Semáforo: Verde si gastó menos o igual a lo estimado
@@ -122,6 +131,6 @@ function getDesviacionCategoriasMCI($pdo, $anio, $mes_limite = null) {
             'diferencia' => $total_estimado - $total_ejecutado,
             'estado' => ($total_ejecutado <= $total_estimado) ? 'verde' : 'rojo'
         ],
-        'mes_analizado' => $mes_limite
+        'mes_analizado' => $mes
     ];
 }

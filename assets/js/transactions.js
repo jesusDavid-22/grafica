@@ -149,10 +149,9 @@ function deleteTransactionConfirm(txId, txType) {
     document.getElementById('confirm-delete-tx-type').value = txType;
     
     // Llenar información en el modal
-    const tipoEtiqueta = txType === 'gasto' ? '💸 Gasto' : '💰 Ingreso';
+    const tipoEtiqueta = txType === 'gasto' ? '🔴 Gasto' : '🟢 Ingreso';
     document.getElementById('confirm-delete-concepto').textContent = transaction.concepto;
     document.getElementById('confirm-delete-monto').textContent = `$${transaction.monto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
-    document.getElementById('confirm-delete-fecha').textContent = transaction.fecha;
     document.getElementById('confirm-delete-tipo').textContent = tipoEtiqueta;
     
     // Abrir modal

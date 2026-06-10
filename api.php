@@ -37,7 +37,7 @@ try {
             
             $response = [
                 'success'              => true,
-                'kpis'                 => getDashboardKPIs($pdo, $periodo),
+                'kpis'                 => getDashboardKPIs($pdo, $periodo, $vista),
                 'gastos_categoria'     => getGastosPorCategoria($pdo, $periodo, $vista),
                 'gastos_mes'           => getGastosPorMes($pdo),
                 'tendencia'            => getTendenciaTemporal($pdo, $periodo),
@@ -82,12 +82,24 @@ try {
 
         case 'get_mci_dashboard':
             $periodo = $request['periodo'] ?? date('Y-m');
+            $vista   = $request['vista'] ?? 'mes';
             $anio = substr($periodo, 0, 4);
             $mes = (int)substr($periodo, 5, 2);
+            
+            if ($vista === 'anio') {
+                $mes_limite = 12;
+            } elseif ($vista === 'trimestre') {
+                $mes_limite = ceil($mes / 3) * 3;
+            } elseif ($vista === 'dia') {
+                $mes_limite = $mes;
+            } else {
+                $mes_limite = $mes;
+            }
+
             $response = [
                 'success' => true,
-                'kpis' => getDashboardKPIs($pdo, $periodo),
-                'mci_desviacion' => getDesviacionCategoriasMCI($pdo, $anio, $mes),
+                'kpis' => getDashboardKPIs($pdo, $periodo, $vista),
+                'mci_desviacion' => getDesviacionCategoriasMCI($pdo, $periodo, $vista),
                 'mci_matriz' => getMatrizMCI($pdo, $anio)
             ];
             break;
@@ -587,6 +599,81 @@ try {
             $conceptos2 = $stmt2->fetchAll(PDO::FETCH_COLUMN);
             echo json_encode(['success'=>true, 'conceptos' => array_unique(array_merge($conceptos, $conceptos2))]);
             break;
+
+        case 'bulk_upload_transacciones':
+            $data = $request['data'] ?? [];
+            if (!is_array($data) || empty($data)) {
+                echo json_encode(['success'=>false,'message'=>'No hay datos para subir']); exit;
+            }
+            $stmt = $pdo->query("SELECT id, LOWER(nombre) as name FROM categorias");
+            $cats = [];
+            foreach($stmt->fetchAll() as $c) { $cats[$c['name']] = $c['id']; }
+            
+            $pdo->beginTransaction();
+            try {
+                $insertGasto = $pdo->prepare("INSERT INTO gastos (fecha, concepto, categoria_id, monto) VALUES (?, ?, ?, ?)");
+                $insertIngreso = $pdo->prepare("INSERT INTO ingresos (fecha, concepto, monto) VALUES (?, ?, ?)");
+                
+                $insertados = 0;
+                foreach($data as $row) {
+                    $fecha = $row['fecha'];
+                    $concepto = $row['concepto'];
+                    $monto = (float)$row['monto'];
+                    $tipo = strtolower($row['tipo']);
+                    
+                    if ($tipo === 'ingreso') {
+                        $insertIngreso->execute([$fecha, $concepto, $monto]);
+                        $insertados++;
+                    } else {
+                        $catName = strtolower(trim($row['categoria']));
+                        if (!isset($cats[$catName])) {
+                            $insCat = $pdo->prepare("INSERT INTO categorias (nombre, color, icono) VALUES (?, '#64748B', 'help-circle')");
+                            $insCat->execute([trim($row['categoria'])]);
+                            $cats[$catName] = $pdo->lastInsertId();
+                        }
+                        $insertGasto->execute([$fecha, $concepto, $cats[$catName], $monto]);
+                        $insertados++;
+                    }
+                }
+                $pdo->commit();
+                echo json_encode(['success'=>true, 'insertados'=>$insertados]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success'=>false, 'message'=>'Error en BD: '.$e->getMessage()]);
+            }
+            exit;
+
+        case 'bulk_upload_metas':
+            $data = $request['data'] ?? [];
+            if (!is_array($data) || empty($data)) {
+                echo json_encode(['success'=>false,'message'=>'No hay datos para subir']); exit;
+            }
+            $stmt = $pdo->query("SELECT id, LOWER(nombre) as name FROM categorias");
+            $cats = [];
+            foreach($stmt->fetchAll() as $c) { $cats[$c['name']] = $c['id']; }
+            
+            $pdo->beginTransaction();
+            try {
+                $insertMeta = $pdo->prepare("INSERT INTO metas_categoria (categoria_id, anio, valor_meta) VALUES (?, ?, ?) ON CONFLICT(categoria_id, anio) DO UPDATE SET valor_meta=excluded.valor_meta");
+                
+                $insertados = 0;
+                foreach($data as $row) {
+                    $catName = strtolower(trim($row['categoria']));
+                    if (!isset($cats[$catName])) {
+                        $insCat = $pdo->prepare("INSERT INTO categorias (nombre, color, icono) VALUES (?, '#64748B', 'help-circle')");
+                        $insCat->execute([trim($row['categoria'])]);
+                        $cats[$catName] = $pdo->lastInsertId();
+                    }
+                    $insertMeta->execute([$cats[$catName], (int)$row['anio'], (float)$row['meta']]);
+                    $insertados++;
+                }
+                $pdo->commit();
+                echo json_encode(['success'=>true, 'insertados'=>$insertados]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success'=>false, 'message'=>'Error en BD: '.$e->getMessage()]);
+            }
+            exit;
 
         default:
             http_response_code(400);

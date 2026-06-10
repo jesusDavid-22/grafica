@@ -65,6 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 7. Autocompletado en campos de concepto
     initAutocompletado('gasto-concepto');
     initAutocompletado('ingreso-concepto');
+
+    // 8. Navegación (Tabs)
+    initNavigation();
+
+    // 9. Lógica de Carga Masiva (Drag & Drop)
+    initBulkUpload();
 });
 
 /**
@@ -197,6 +203,9 @@ function refreshDashboardData(periodo = null) {
                 renderAhorroGlobal(data.kpis);
                 if (data.balance_anual) renderBalanceAnual(data.balance_anual);
                 loadBitacora();
+                
+                // NUEVO: Cargar Dashboard MCI 2026
+                refreshMciDashboard(periodo);
             }
         })
         .catch(error => {
@@ -797,6 +806,158 @@ function initGlassPanelsHoverEffect() {
             panel.style.setProperty('--y', `${y}px`);
         });
     });
+}
+
+/**
+ * Carga los datos específicos para el tablero MCI 2026
+ */
+function refreshMciDashboard(periodo) {
+    fetch(`api.php?action=get_mci_dashboard&periodo=${periodo}&vista=${currentFiltro}&_t=${Date.now()}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderMciKpis(data.mci_desviacion);
+                renderMciTables(data.mci_desviacion);
+                renderMciPivotTable(data.mci_matriz);
+                
+                // Actualizar gráficas ECharts
+                if (AppCharts.mciAvance) AppCharts.updateMciAvance(data.mci_desviacion.detalles, data.mci_desviacion.totales);
+                if (AppCharts.mciBarHorizontal) AppCharts.updateMciBarHorizontal(data.mci_desviacion.detalles);
+            }
+        })
+        .catch(e => console.error("Error loading MCI Dashboard:", e));
+}
+
+function renderMciKpis(desviacion) {
+    const kpiAvance = document.getElementById('mci-kpi-avance');
+    const kpiAhorro = document.getElementById('mci-kpi-ahorro');
+    
+    if (!desviacion || !desviacion.totales) return;
+    
+    const t = desviacion.totales;
+    // Avance real
+    const pctAvance = t.mci_anual > 0 ? (t.ejecutado / t.mci_anual) * 100 : 0;
+    if (kpiAvance) kpiAvance.textContent = pctAvance.toFixed(1) + '%';
+    
+    // Ahorro $ = Presupuesto del periodo (estimado) - Gastado del periodo (ejecutado)
+    const ahorro = Math.round(t.estimado - t.ejecutado);
+    if (kpiAhorro) kpiAhorro.textContent = '$ ' + Math.max(0, ahorro).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+function renderMciTables(desviacion) {
+    const tbodyCump = document.querySelector('#mci-table-cumplimiento tbody');
+    const tbodyDesv = document.querySelector('#mci-table-desviacion tbody');
+    
+    if (!tbodyCump || !tbodyDesv || !desviacion.detalles) return;
+    
+    tbodyCump.innerHTML = '';
+    tbodyDesv.innerHTML = '';
+    
+    // Nombres de los meses fijos o basados en desviacion.mes_analizado
+    const mesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const mesName = mesNombres[(desviacion.mes_analizado || 5) - 1].toUpperCase();
+    
+    // Tabla de Cumplimiento (NOMINA, RUTAS, etc)
+    desviacion.detalles.forEach(d => {
+        const pct = d.mci_anual > 0 ? (d.ejecutado / d.mci_anual) * 100 : 0;
+        tbodyCump.innerHTML += `
+            <tr>
+                <td style="font-weight:600;">${d.nombre.toUpperCase()}</td>
+                <td style="text-align:right;">$ ${d.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+                <td style="text-align:right;">$ ${d.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+                <td style="text-align:right;">${pct.toFixed(0)}%</td>
+            </tr>
+        `;
+    });
+    
+    // Fila de TOTALES Cumplimiento
+    const t = desviacion.totales;
+    const tPct = t.mci_anual > 0 ? (t.ejecutado / t.mci_anual) * 100 : 0;
+    tbodyCump.innerHTML += `
+        <tr style="background:rgba(255,255,255,0.05); font-weight:bold;">
+            <td>TOTAL</td>
+            <td style="text-align:right;">$ ${t.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+            <td style="text-align:right;">$ ${t.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+            <td style="text-align:right;">${tPct.toFixed(0)}%</td>
+        </tr>
+    `;
+    
+    // Tabla de Desviación
+    desviacion.detalles.forEach(d => {
+        const semaforoHtml = d.estado === 'verde' ? '<i data-lucide="check-circle" style="color:#10B981;width:14px;height:14px;"></i>' : '<i data-lucide="alert-circle" style="color:#EF4444;width:14px;height:14px;"></i>';
+        tbodyDesv.innerHTML += `
+            <tr>
+                <td style="font-weight:600; color:var(--text-primary);"><div style="display:flex;align-items:center;gap:0.4rem;">${semaforoHtml} ${d.nombre.toUpperCase()}</div></td>
+                <td style="text-align:right;">$ ${d.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right;">$ ${d.estimado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right;">$ ${d.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right;">$ ${Math.abs(d.diferencia).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            </tr>
+        `;
+    });
+    
+    // Fila de TOTALES Desviación
+    const iconTot = t.diferencia < 0 ? '<i data-lucide="arrow-down" style="color:var(--success);width:14px;height:14px;"></i>' : 
+                                    '<i data-lucide="arrow-up" style="color:var(--danger);width:14px;height:14px;"></i>';
+    tbodyDesv.innerHTML += `
+        <tr style="background:rgba(255,255,255,0.05); font-weight:800; font-size:0.9rem; color:var(--text-primary);">
+            <td>TOTAL ACUMULADO ${mesName}</td>
+            <td style="text-align:right;">$ ${t.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right;">$ ${t.estimado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right;">$ ${t.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right;">${iconTot} $ ${Math.abs(t.diferencia).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+        </tr>
+    `;
+}
+
+function renderMciPivotTable(matriz) {
+    const theadCats = document.getElementById('mci-pivot-cat-headers');
+    const tbody = document.getElementById('mci-pivot-tbody');
+    
+    if (!theadCats || !tbody || !matriz) return;
+    
+    // Render headers
+    theadCats.outerHTML = matriz.categorias.map(c => `<th style="text-align:right;">${c.nombre.toUpperCase()}</th>`).join('') + '<th style="text-align:right;">TOTAL</th>';
+    
+    // Render body
+    tbody.innerHTML = '';
+    const anio = document.getElementById('global-period-picker').value.split('-')[0];
+    
+    let totalesColumna = {};
+    matriz.categorias.forEach(c => totalesColumna[c.id] = 0);
+    let granTotal = 0;
+    
+    matriz.filas.forEach(f => {
+        let colsHTML = '';
+        matriz.categorias.forEach(c => {
+            const val = f.categorias[c.id] || 0;
+            totalesColumna[c.id] += val;
+            colsHTML += `<td style="text-align:right;">$ ${val > 0 ? val.toLocaleString('es-MX', {minimumFractionDigits:0}) : '-'}</td>`;
+        });
+        granTotal += f.total_mes;
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>${anio}</td>
+                <td style="font-weight:600;">${f.mes}</td>
+                ${colsHTML}
+                <td style="text-align:right; font-weight:bold;">$ ${f.total_mes > 0 ? f.total_mes.toLocaleString('es-MX', {minimumFractionDigits:0}) : '-'}</td>
+            </tr>
+        `;
+    });
+    
+    // Fila Total Acumulado
+    let colsTotHTML = '';
+    matriz.categorias.forEach(c => {
+        colsTotHTML += `<td style="text-align:right;">$ ${totalesColumna[c.id].toLocaleString('es-MX', {minimumFractionDigits:0})}</td>`;
+    });
+    tbody.innerHTML += `
+        <tr style="background:rgba(255,255,255,0.08); font-weight:bold;">
+            <td colspan="2">${anio} ACUMULADO</td>
+            ${colsTotHTML}
+            <td style="text-align:right;">$ ${granTotal.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+        </tr>
+    `;
 }
 
 /**
@@ -1454,7 +1615,8 @@ function loadBitacora() {
         });
     }
 
-    fetch(`api.php?action=get_bitacora&anio=${anio}&mes=${mes}&categoria_id=${cat}`)
+    // Mostrar todas las transacciones del año, sin importar el mes seleccionado
+    fetch(`api.php?action=get_bitacora&anio=${anio}&categoria_id=${cat}`)
     .then(r=>r.json()).then(d => {
         if(d.success) {
             const tbody = document.getElementById('bitacora-tbody');
@@ -1753,4 +1915,338 @@ function renderMetaVsEjec(gastosCat, presupuesto) {
         pct:       c.meta_cat > 0 ? (c.total / c.meta_cat * 100) : 0,
     }));
     AppCharts.updateMetaVsEjecutado(metasData);
+}
+
+// ============================================================================
+// CARGA MASIVA (BULK UPLOAD)
+// ============================================================================
+let bulkDataToSubmit = [];
+
+function initBulkUpload() {
+    const dropZone = document.getElementById('bulk-drop-zone');
+    const fileInput = document.getElementById('bulk-file-input');
+    
+    if (!dropZone || !fileInput) return;
+
+    // Abrir selector al hacer click
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // Manejar Drag & Drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.background = 'rgba(99,102,241,0.15)';
+            dropZone.style.borderColor = 'var(--primary)';
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.background = 'rgba(99,102,241,0.05)';
+            dropZone.style.borderColor = 'rgba(99,102,241,0.4)';
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleBulkFiles(files);
+    });
+
+    fileInput.addEventListener('change', function() {
+        handleBulkFiles(this.files);
+    });
+}
+
+function handleBulkFiles(files) {
+    if (files.length === 0) return;
+    const file = files[0];
+    
+    const validExts = ['.xlsx', '.xls', '.csv'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    
+    if (!validExts.includes(fileExt)) {
+        showToast('Formato no válido. Sube un archivo .xlsx o .csv', 'danger');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convertir a JSON
+            const json = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+            processBulkData(json);
+        } catch (error) {
+            console.error(error);
+            showToast('Error al leer el archivo. Verifica el formato.', 'danger');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function processBulkData(data) {
+    const type = document.getElementById('bulk-upload-type').value;
+    const tbody = document.getElementById('bulk-preview-tbody');
+    const thead = document.getElementById('bulk-preview-thead');
+    const btnSubmit = document.getElementById('btn-bulk-submit');
+    const errorCountSpan = document.getElementById('bulk-error-count');
+    
+    document.getElementById('bulk-preview-container').style.display = 'block';
+    tbody.innerHTML = '';
+    bulkDataToSubmit = [];
+    
+    let errors = 0;
+
+    if (type === 'transacciones') {
+        thead.innerHTML = `<tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Monto</th><th>Tipo</th><th>Estado</th></tr>`;
+        
+        data.forEach((row, index) => {
+            const getVal = (keys) => {
+                const k = Object.keys(row).find(key => keys.includes(key.toLowerCase().trim()));
+                return k ? row[k] : null;
+            };
+
+            const fecha = getVal(['fecha', 'date']);
+            const concepto = getVal(['concepto', 'descripción', 'description', 'detalle']);
+            const categoria = getVal(['categoría', 'categoria', 'category']);
+            let monto = getVal(['monto', 'cantidad', 'amount', 'valor']);
+            let tipo = getVal(['tipo', 'type']) || 'gasto'; // default gasto
+
+            monto = parseFloat(String(monto).replace(/[^0-9.-]+/g,""));
+            tipo = String(tipo).toLowerCase().includes('ingreso') ? 'ingreso' : 'gasto';
+
+            let rowStatus = '✅ OK';
+            let rowColor = 'var(--success)';
+            let isValid = true;
+
+            if (!fecha || isNaN(Date.parse(fecha))) { isValid = false; rowStatus = '❌ Fecha inválida'; }
+            if (!concepto || concepto.length < 3) { isValid = false; rowStatus = '❌ Concepto corto'; }
+            if (!categoria && tipo === 'gasto') { isValid = false; rowStatus = '❌ Falta categoría'; }
+            if (isNaN(monto) || monto <= 0) { isValid = false; rowStatus = '❌ Monto inválido'; }
+
+            if (!isValid) {
+                errors++;
+                rowColor = 'var(--danger)';
+            } else {
+                bulkDataToSubmit.push({ fecha, concepto, categoria, monto, tipo });
+            }
+
+            tbody.innerHTML += `
+                <tr style="color:${isValid ? '' : 'rgba(239,68,68,0.8)'}">
+                    <td>${fecha || '-'}</td>
+                    <td>${concepto || '-'}</td>
+                    <td>${categoria || '-'}</td>
+                    <td>$${isNaN(monto) ? '0' : monto.toLocaleString('es-MX')}</td>
+                    <td><span class="tx-category-badge" style="background:rgba(255,255,255,0.05); color:${tipo==='ingreso'?'var(--success)':'var(--danger)'}">${tipo.toUpperCase()}</span></td>
+                    <td style="color:${rowColor}; font-weight:bold; font-size:0.85rem;">${rowStatus}</td>
+                </tr>
+            `;
+        });
+    } else {
+        // Metas MCI
+        thead.innerHTML = `<tr><th>Categoría (Proceso)</th><th>Año</th><th>Meta (MCI Anual)</th><th>Estado</th></tr>`;
+        
+        data.forEach((row, index) => {
+            const getVal = (keys) => {
+                const k = Object.keys(row).find(key => keys.includes(key.toLowerCase().trim()));
+                return k ? row[k] : null;
+            };
+
+            const categoria = getVal(['categoría', 'categoria', 'proceso']);
+            let anio = getVal(['año', 'anio', 'year']);
+            let meta = getVal(['meta', 'mci', 'mci anual', 'monto']);
+
+            anio = parseInt(anio) || new Date().getFullYear();
+            meta = parseFloat(String(meta).replace(/[^0-9.-]+/g,""));
+
+            let rowStatus = '✅ OK';
+            let rowColor = 'var(--success)';
+            let isValid = true;
+
+            if (!categoria) { isValid = false; rowStatus = '❌ Falta categoría'; }
+            if (isNaN(meta) || meta <= 0) { isValid = false; rowStatus = '❌ Meta inválida'; }
+
+            if (!isValid) {
+                errors++;
+                rowColor = 'var(--danger)';
+            } else {
+                bulkDataToSubmit.push({ categoria, anio, meta });
+            }
+
+            tbody.innerHTML += `
+                <tr style="color:${isValid ? '' : 'rgba(239,68,68,0.8)'}">
+                    <td>${categoria || '-'}</td>
+                    <td>${anio}</td>
+                    <td>$${isNaN(meta) ? '0' : meta.toLocaleString('es-MX')}</td>
+                    <td style="color:${rowColor}; font-weight:bold; font-size:0.85rem;">${rowStatus}</td>
+                </tr>
+            `;
+        });
+    }
+
+    if (errors > 0) {
+        errorCountSpan.textContent = `⚠️ ${errors} fila(s) con errores serán ignoradas.`;
+        errorCountSpan.style.display = 'inline-block';
+    } else {
+        errorCountSpan.style.display = 'none';
+    }
+
+    if (bulkDataToSubmit.length > 0) {
+        btnSubmit.style.opacity = '1';
+        btnSubmit.style.pointerEvents = 'auto';
+        btnSubmit.innerHTML = `<i data-lucide="save"></i> Subir ${bulkDataToSubmit.length} Registros`;
+    } else {
+        btnSubmit.style.opacity = '0.5';
+        btnSubmit.style.pointerEvents = 'none';
+        btnSubmit.innerHTML = `<i data-lucide="save"></i> Subir Datos Válidos`;
+    }
+    
+    lucide.createIcons();
+}
+
+function submitBulkData() {
+    if (bulkDataToSubmit.length === 0) return;
+    
+    const type = document.getElementById('bulk-upload-type').value;
+    const action = type === 'transacciones' ? 'bulk_upload_transacciones' : 'bulk_upload_metas';
+    const btnSubmit = document.getElementById('btn-bulk-submit');
+    
+    btnSubmit.innerHTML = `<i data-lucide="loader" class="spin"></i> Procesando...`;
+    btnSubmit.style.pointerEvents = 'none';
+    
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action, data: bulkDataToSubmit })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`¡Carga exitosa! ${data.insertados} registros guardados.`, 'success', 5000);
+            document.getElementById('bulk-preview-container').style.display = 'none';
+            document.getElementById('bulk-file-input').value = '';
+            bulkDataToSubmit = [];
+            refreshDashboardData(); // Refrescar los gráficos
+            
+            // Volver al dashboard
+            document.querySelector('a.nav-item[href="#dashboard"]').click();
+        } else {
+            showToast(data.message || 'Error en la carga masiva.', 'danger', 5000);
+            btnSubmit.innerHTML = `<i data-lucide="save"></i> Reintentar Subida`;
+            btnSubmit.style.pointerEvents = 'auto';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast('Error de conexión al subir los datos.', 'danger');
+        btnSubmit.innerHTML = `<i data-lucide="save"></i> Reintentar Subida`;
+        btnSubmit.style.pointerEvents = 'auto';
+    });
+}
+
+function updateBulkTemplateLink() {
+    // Solo cambiar el comportamiento del botón de plantilla según el tipo seleccionado
+}
+
+function downloadBulkTemplate() {
+    const type = document.getElementById('bulk-upload-type').value;
+    
+    // Crear un libro de Excel (Workbook)
+    const wb = XLSX.utils.book_new();
+    let ws_data = [];
+    let fileName = '';
+
+    if (type === 'transacciones') {
+        fileName = 'Plantilla_Transacciones_Financieras.xlsx';
+        // Encabezados
+        ws_data.push(["Fecha", "Concepto", "Categoría", "Monto", "Tipo"]);
+        // Fila de ejemplo 1
+        ws_data.push(["2026-05-15", "Compra de Servidores Cloud", "Tecnología & Software", 50000.50, "Gasto"]);
+        // Fila de ejemplo 2
+        ws_data.push(["2026-05-16", "Venta de Servicios Web", "", 15000.00, "Ingreso"]);
+        // Fila de ejemplo 3
+        ws_data.push(["2026-05-18", "Pago de Planillas Mensuales", "Nómina & Personal", 120000.00, "Gasto"]);
+    } else {
+        fileName = 'Plantilla_Metas_MCI_2026.xlsx';
+        // Encabezados
+        ws_data.push(["Categoría (Proceso)", "Año", "Meta (MCI Anual)"]);
+        // Ejemplos
+        ws_data.push(["Nómina & Personal", 2026, 10000000]);
+        ws_data.push(["Tecnología & Software", 2026, 8000000]);
+        ws_data.push(["Marketing & Publicidad", 2026, 2000000]);
+    }
+
+    // Convertir el array de datos a una hoja de cálculo
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // Darle un poco de formato a los anchos de columna para que no se vea "simple"
+    const wscols = type === 'transacciones' 
+        ? [{wch: 15}, {wch: 35}, {wch: 25}, {wch: 15}, {wch: 10}]
+        : [{wch: 30}, {wch: 10}, {wch: 20}];
+    ws['!cols'] = wscols;
+
+    // Agregar la hoja al libro
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+
+    // Generar y descargar el archivo XLSX real
+    XLSX.writeFile(wb, fileName);
+}
+
+// ============================================================================
+// NAVEGACIÓN (TABS EN SIDEBAR)
+// ============================================================================
+function initNavigation() {
+    const navItems = document.querySelectorAll('.nav-item[href^="#"]');
+    const main = document.getElementById('dashboard');
+    const cargaMasiva = document.getElementById('cargamasiva-view');
+    
+    // Crear un wrapper para el dashboard principal si no existe
+    let dashView = document.getElementById('main-dashboard-view');
+    if (!dashView) {
+        dashView = document.createElement('div');
+        dashView.id = 'main-dashboard-view';
+        dashView.style.width = '100%';
+        
+        // Mover todos los hijos de main (excepto cargaMasiva) al dashView
+        Array.from(main.childNodes).forEach(child => {
+            if (child.id !== 'cargamasiva-view') {
+                dashView.appendChild(child);
+            }
+        });
+        
+        main.insertBefore(dashView, main.firstChild);
+    }
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = item.getAttribute('href').substring(1);
+            
+            navItems.forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+            
+            if (targetId === 'cargamasiva') {
+                dashView.style.display = 'none';
+                cargaMasiva.style.display = 'block';
+                document.getElementById('dashboard-title-text').textContent = 'Carga Masiva';
+            } else {
+                cargaMasiva.style.display = 'none';
+                dashView.style.display = 'block';
+                refreshDashboardData(); // Refresca el título y datos
+            }
+        });
+    });
 }

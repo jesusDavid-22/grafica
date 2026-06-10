@@ -11,7 +11,7 @@ require_once __DIR__ . '/includes/db.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinancialDash — Dashboard Estratégico</title>
     <meta name="description" content="Dashboard financiero estratégico con KPIs, metas, proyecciones y análisis de desviaciones en tiempo real.">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=3">
 </head>
 <body>
 
@@ -44,6 +44,9 @@ require_once __DIR__ . '/includes/db.php';
                     </a></li>
                     <li><a class="nav-item" href="#bitacora">
                         <i data-lucide="book-open"></i><span>Bitácora</span>
+                    </a></li>
+                    <li><a class="nav-item" href="#cargamasiva">
+                        <i data-lucide="upload-cloud"></i><span>Carga Masiva</span>
                     </a></li>
                     <li><hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:0.5rem 0;"></li>
                     <li><a class="nav-item" onclick="openCategoriesManager()">
@@ -78,10 +81,10 @@ require_once __DIR__ . '/includes/db.php';
         <main class="main-content" id="dashboard">
             
             <!-- ── ENCABEZADO ─────────────────────── -->
-            <header class="dashboard-header">
-                <div class="header-title">
-                    <h1 id="dashboard-title-text">Dashboard Financiero Estratégico</h1>
-                    <p>Análisis en tiempo real · Metas · Proyecciones · Desviaciones</p>
+            <header class="dashboard-header" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+                <div class="header-title" style="width:100%;">
+                    <h1 id="dashboard-title-text" style="font-size:1.8rem;">Direccion Administrativa</h1>
+                    <p style="font-size:1rem; font-weight:bold; color:var(--text-primary); margin-top:0.2rem;">MCI 2026 Reducir los gastos operativos del ppto aprobado, pasando de 18.782 a 18.546 millones de dolares generando ahorros de 236.000 dolares a Dic 31 de 2026</p>
                 </div>
                 <div class="header-actions">
                     <!-- Campana de alertas -->
@@ -143,6 +146,23 @@ require_once __DIR__ . '/includes/db.php';
             </div>
 
             <!-- ── KPIs GRID ─────────────────────────────────────── -->
+            <!-- KPIs MCI 2026 SUPERIORES -->
+            <section style="display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1.5rem; margin-bottom:1.5rem;">
+                <!-- Avance MCI -->
+                <div style="background:var(--primary); color:white; border-radius:12px; padding:1.5rem; flex:1; min-width:200px; box-shadow:0 8px 20px rgba(99,102,241,0.3); border:2px solid rgba(255,255,255,0.1); position:relative; overflow:hidden;">
+                    <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:1px; z-index:2; position:relative;">Avance MCI</div>
+                    <div id="mci-kpi-avance" style="font-size:clamp(1.5rem, 3vw, 2.5rem); font-weight:900; font-family:Outfit; text-align:right; z-index:2; position:relative; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">--%</div>
+                    <div style="position:absolute; top:-20px; left:-20px; width:100px; height:100px; background:rgba(255,255,255,0.1); border-radius:50%; pointer-events:none;"></div>
+                </div>
+                
+                <!-- Ahorro $ -->
+                <div style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:white; border-radius:12px; padding:1.5rem; flex:1; min-width:200px; box-shadow:0 8px 20px rgba(5,150,105,0.3); border:2px solid rgba(255,255,255,0.1); position:relative; overflow:hidden;">
+                    <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:1px; z-index:2; position:relative;">Ahorro $</div>
+                    <div id="mci-kpi-ahorro" style="font-size:clamp(1.5rem, 3vw, 2.5rem); font-weight:900; font-family:Outfit; text-align:right; z-index:2; position:relative; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">$--</div>
+                    <i data-lucide="piggy-bank" style="position:absolute; bottom:-10px; left:-10px; width:100px; height:100px; color:rgba(255,255,255,0.1); pointer-events:none; transform:rotate(-15deg);"></i>
+                </div>
+            </section>
+
             <section class="kpis-grid">
                 
                 <div class="glass-panel kpi-card" id="card-presupuesto">
@@ -249,8 +269,82 @@ require_once __DIR__ . '/includes/db.php';
 
             </section>
 
-            <!-- ── GRÁFICAS PRINCIPALES ─────────────────────────── -->
-            <section class="dashboard-grid">
+            <!-- ── GRÁFICAS PRINCIPALES Y TABLAS MCI ─────────────────────────── -->
+            <section class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                
+                <!-- Gráfica Avance Proceso (Izquierda) -->
+                <div class="glass-panel chart-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Avance $ proceso</span>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <button class="btn-chart-dl" onclick="AppCharts.downloadChart('mciAvance','Avance_MCI')" title="Descargar">
+                                <i data-lucide="download" style="width:13px;height:13px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-container" id="chart-mci-avance-container" style="min-height:350px;"></div>
+                </div>
+
+                <!-- Tabla Acumulado vs Meta (Derecha) -->
+                <div class="glass-panel" style="display:flex; flex-direction:column; padding:1.5rem;">
+                    <div class="panel-header" style="margin-bottom:1rem;">
+                        <span class="panel-title">Cumplimiento por Proceso</span>
+                    </div>
+                    <div class="transactions-table-wrapper" style="border:1px solid var(--panel-border); border-radius:12px; overflow-x:auto;">
+                        <table class="transactions-table" style="font-size:0.85rem;" id="mci-table-cumplimiento">
+                            <thead>
+                                <tr>
+                                    <th>MES</th>
+                                    <th style="text-align:right;">ACUMULADO MAYO</th>
+                                    <th style="text-align:right;">META 2026</th>
+                                    <th style="text-align:right;">CUMPLIMIENTO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Llenado por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <section class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-top:1.5rem;">
+                
+                <!-- Gráfica Avance por proceso (Barras horizontales) -->
+                <div class="glass-panel chart-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Avance por proceso</span>
+                    </div>
+                    <div class="chart-container" id="chart-mci-bar-horizontal-container" style="min-height:300px;"></div>
+                </div>
+
+                <!-- Tabla Ejecutado vs Estimado -->
+                <div class="glass-panel" style="display:flex; flex-direction:column; padding:1.5rem;">
+                    <div class="panel-header" style="margin-bottom:1rem;">
+                        <span class="panel-title">Desviación del Estimado</span>
+                    </div>
+                    <div class="transactions-table-wrapper" style="border:1px solid var(--panel-border); border-radius:12px; overflow-x:auto;">
+                        <table class="transactions-table" style="font-size:0.85rem;" id="mci-table-desviacion">
+                            <thead>
+                                <tr>
+                                    <th>ACUMULADO A MAYO</th>
+                                    <th style="text-align:right;">MCI</th>
+                                    <th style="text-align:right;">ESTIMADO A MAYO</th>
+                                    <th style="text-align:right;">EJECUTADO</th>
+                                    <th style="text-align:right; width:100px;">DIFERENCIA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Llenado por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <section class="dashboard-grid" style="margin-top:2.5rem;">
                 
                 <div class="glass-panel chart-panel">
                     <div class="panel-header">
@@ -326,19 +420,6 @@ require_once __DIR__ . '/includes/db.php';
                     <div class="chart-container" id="chart-donut-container"></div>
                 </div>
 
-                <div class="glass-panel chart-panel">
-                    <div class="panel-header">
-                        <span class="panel-title">Radar de KPIs Financieros</span>
-                        <div style="display:flex;gap:0.5rem;align-items:center;">
-                            <button class="btn-chart-dl" onclick="AppCharts.downloadChart('radar','radar_kpis')" title="Descargar">
-                                <i data-lucide="download" style="width:13px;height:13px;"></i>
-                            </button>
-                            <i data-lucide="radar" class="text-secondary" style="width:18px;"></i>
-                        </div>
-                    </div>
-                    <div class="chart-container" id="chart-radar-container"></div>
-                </div>
-
             </section>
 
             <!-- ── HISTÓRICO 12 MESES (barras agrupadas) ─────────── -->
@@ -379,7 +460,7 @@ require_once __DIR__ . '/includes/db.php';
                                 <label for="meta-ahorro-input" style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Meta de Ahorro Anual</label>
                                 <div style="position:relative;">
                                     <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--primary); font-size:1rem; font-weight: 800; pointer-events:none;">$</span>
-                                    <input type="number" id="meta-ahorro-input" placeholder="Ej: 45000000" min="0" step="1000"
+                                    <input type="number" id="meta-ahorro-input" placeholder="Ej: 45000000" min="0" step="any"
                                         style="width:200px; background:rgba(0,0,0,0.25); border:1px solid rgba(99,102,241,0.3); color:#fff; font-family: Outfit; font-weight: 600; font-size: 1.05rem; border-radius:8px; padding:0.6rem 0.8rem; padding-left:2rem; transition: all 0.3s ease; outline:none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
                                 </div>
                             </div>
@@ -631,6 +712,96 @@ require_once __DIR__ . '/includes/db.php';
                 </div>
             </section>
 
+            <!-- ── BITÁCORA MATRIZ MCI (PIVOT) ───────────────────────────── -->
+            <section class="glass-panel bitacora-section" id="bitacora-pivot" style="margin-bottom:2rem;">
+                <div class="panel-header" style="margin-bottom:1rem;">
+                    <span class="panel-title" style="display:flex; align-items:center; gap:0.5rem; font-size:1.2rem;">
+                        <i data-lucide="grid" class="text-secondary" style="width:20px; height:20px;"></i>
+                        BITÁCORA MCI 2026
+                    </span>
+                    <button class="btn btn-outline" style="padding:0.4rem 0.8rem;font-size:0.75rem;color:var(--success);border-color:rgba(16,185,129,0.3);" onclick="exportarBitacoraMCI()">
+                        <i data-lucide="download" style="width:12px;height:12px;"></i> Exportar Excel
+                    </button>
+                </div>
+                
+                <div class="transactions-table-wrapper" style="border:1px solid var(--panel-border); border-radius:12px; overflow-x:auto;">
+                    <table class="transactions-table" id="mci-pivot-table" style="font-size:0.85rem;">
+                        <thead>
+                            <tr style="background:rgba(255,255,255,0.05);">
+                                <th style="width:60px;">AÑO</th>
+                                <th style="width:100px;">MES</th>
+                                <!-- Las categorías se generarán dinámicamente -->
+                                <th id="mci-pivot-cat-headers"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="mci-pivot-tbody">
+                            <tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:1rem;">Calculando matriz...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ────────────────────────────────────────────────────────
+                 MÓDULO: CARGA MASIVA (Oculto por defecto)
+            ───────────────────────────────────────────────────────── -->
+            <section id="cargamasiva-view" style="display:none; padding:1.5rem; animation:fadeIn 0.4s ease-out;">
+                <div class="glass-panel" style="padding:2rem;">
+                    <h2 style="font-size:1.5rem; font-weight:700; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i data-lucide="upload-cloud" style="color:var(--primary);"></i> Carga Masiva de Datos
+                    </h2>
+                    <p style="color:var(--text-secondary); margin-bottom:2rem; font-size:0.95rem;">
+                        Sube registros masivos (Gastos, Ingresos o Metas MCI) arrastrando un archivo Excel (.xlsx) o CSV.
+                    </p>
+
+                    <!-- Selector de tipo de carga -->
+                    <div style="display:flex; gap:1.5rem; margin-bottom:2rem;">
+                        <div class="form-group" style="flex:1; max-width:300px;">
+                            <label class="form-label" style="font-weight:600;">¿Qué deseas subir?</label>
+                            <select id="bulk-upload-type" class="form-control" onchange="updateBulkTemplateLink()">
+                                <option value="transacciones">Gastos e Ingresos (Histórico)</option>
+                                <option value="metas">Metas Anuales (MCI)</option>
+                            </select>
+                        </div>
+                        <div style="flex:1; display:flex; align-items:flex-end; padding-bottom:0.2rem;">
+                            <button class="btn btn-outline" id="btn-download-template" onclick="downloadBulkTemplate()" style="display:flex; align-items:center; gap:0.5rem; border-color:var(--primary); color:var(--primary);">
+                                <i data-lucide="download"></i> Descargar Plantilla
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Drag & Drop Area -->
+                    <div id="bulk-drop-zone" style="border: 2px dashed rgba(99,102,241,0.4); border-radius:12px; padding:3rem 2rem; text-align:center; background:rgba(99,102,241,0.05); cursor:pointer; transition:all 0.3s ease;">
+                        <i data-lucide="file-spreadsheet" style="width:48px; height:48px; color:var(--primary); margin-bottom:1rem; opacity:0.8;"></i>
+                        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:0.5rem;">Arrastra tu archivo aquí o haz clic para seleccionarlo</h3>
+                        <p style="color:var(--text-muted); font-size:0.85rem;">Soporta archivos .xlsx y .csv</p>
+                        <input type="file" id="bulk-file-input" accept=".xlsx, .xls, .csv" style="display:none;">
+                    </div>
+
+                    <!-- Vista Previa de Tabla (Oculta hasta que se carga un archivo) -->
+                    <div id="bulk-preview-container" style="display:none; margin-top:2rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h3 style="font-size:1.1rem; font-weight:600;"><i data-lucide="eye" style="display:inline; width:18px;"></i> Vista Previa de Registros</h3>
+                            <div>
+                                <span id="bulk-error-count" style="color:var(--danger); font-weight:600; margin-right:1rem; display:none;"></span>
+                                <button class="btn btn-success" id="btn-bulk-submit" onclick="submitBulkData()" style="opacity:0.5; pointer-events:none;">
+                                    <i data-lucide="save"></i> Subir Datos Válidos
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive" style="max-height:400px; overflow-y:auto; border:1px solid rgba(255,255,255,0.05); border-radius:8px;">
+                            <table class="data-table" id="bulk-preview-table">
+                                <thead id="bulk-preview-thead">
+                                    <!-- Columnas generadas dinámicamente -->
+                                </thead>
+                                <tbody id="bulk-preview-tbody">
+                                    <!-- Filas generadas dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -761,7 +932,7 @@ require_once __DIR__ . '/includes/db.php';
             <form id="form-presupuesto" onsubmit="handleFormSubmit(event,'set_presupuesto')">
                 <div class="form-group">
                     <label class="form-label" for="presupuesto-total">Presupuesto Anual Total ($)</label>
-                    <input type="number" id="presupuesto-total" class="form-control" step="0.01" min="0.00" placeholder="Ej. 145000000" required>
+                    <input type="number" id="presupuesto-total" class="form-control" step="any" min="0.00" placeholder="Ej. 145000000" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="presupuesto-periodo">Año de Ejercicio</label>
@@ -911,8 +1082,9 @@ require_once __DIR__ . '/includes/db.php';
     <script src="assets/js/vendor/lucide.min.js"></script>
     <script src="assets/js/vendor/echarts.min.js"></script>
     <script src="assets/js/vendor/xlsx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="assets/js/charts.js?v=<?= time() ?>"></script>
-    <script src="assets/js/app.js?v=<?= time() ?>"></script>
+    <script src="assets/js/app.js?v=2"></script>
     <script src="assets/js/transactions.js?v=<?= time() ?>"></script>
 
 </body>

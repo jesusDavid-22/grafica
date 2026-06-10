@@ -197,6 +197,7 @@ body {
     margin-left: var(--sidebar-width);
     padding: 2.5rem;
     min-height: 100vh;
+    min-width: 0;
 }
 
 /* Header Dashboard */
@@ -321,7 +322,7 @@ body {
 /* KPI Cards Grid */
 .kpis-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
@@ -357,10 +358,13 @@ body {
 }
 
 .kpi-value {
-    font-size: 1.75rem;
+    font-size: clamp(1.2rem, 1.8vw, 1.5rem);
     font-weight: 700;
     margin-top: 0.5rem;
     letter-spacing: -0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kpi-footer {
@@ -452,7 +456,7 @@ body {
 /* Dashboard Analytics Grid Layout */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1.8fr;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
@@ -486,7 +490,7 @@ body {
 /* Bottom Grid (History & Tables) */
 .bottom-grid {
     display: grid;
-    grid-template-columns: 1.8fr 1.2fr;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
     gap: 1.5rem;
 }
 
@@ -1162,7 +1166,7 @@ select.form-control option {
     /* Mantener grilla de gráficos en 2 columnas side-by-side */
     .dashboard-grid {
         display: grid !important;
-        grid-template-columns: 1.2fr 1.8fr !important;
+        grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) !important;
         gap: 2rem !important;
         margin-bottom: 2rem !important;
         width: 100% !important;
@@ -1176,7 +1180,7 @@ select.form-control option {
     /* Mantener grilla inferior en 2 columnas side-by-side */
     .bottom-grid {
         display: grid !important;
-        grid-template-columns: 1.8fr 1.2fr !important;
+        grid-template-columns: minmax(0, 6fr) minmax(0, 4fr) !important;
         gap: 2rem !important;
         width: 100% !important;
     }
@@ -2524,5 +2528,104 @@ select.form-control option {
     }
     .proycat-grid {
         grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* =========================================================
+   IMPRESIÓN (PRINT)
+   ========================================================= */
+@media print {
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    .sidebar,
+    .dashboard-header .header-actions,
+    .global-filters,
+    .btn {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    /* Reducir un poco el tamaño global para que quepa más en la hoja */
+    .dashboard-header h1 {
+        font-size: 1.5rem !important;
+        color: black !important;
+    }
+    
+    .dashboard-header p {
+        color: #333 !important;
+    }
+
+    .kpis-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 1rem !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .glass-panel {
+        background: white !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        color: black !important;
+        padding: 1rem !important;
+    }
+
+    .kpi-title {
+        color: #555 !important;
+        font-size: 0.8rem !important;
+    }
+
+    .kpi-value {
+        color: black !important;
+        font-size: 1.5rem !important;
+    }
+
+    .dashboard-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1.5rem !important;
+    }
+    
+    .dashboard-grid > div {
+        break-inside: avoid;
+    }
+
+    /* Gráficas: forzar a no cortarse */
+    canvas {
+        max-width: 100% !important;
+    }
+
+    /* Tablas: forzar a que quepan y no se desborden */
+    table, .transactions-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto !important;
+        font-size: 0.65rem !important;
+        word-wrap: break-word !important;
+    }
+    th, td {
+        white-space: normal !important;
+        padding: 0.3rem !important;
+    }
+    
+    /* Chart container explícito para ECharts */
+    .chart-container {
+        min-height: 250px !important;
+        width: 100% !important;
     }
 }
