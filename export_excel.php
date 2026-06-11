@@ -5,6 +5,7 @@
  */
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/mci_functions.php';
 
 // ── Parámetros ─────────────────────────────────────────────────────────────
 $periodo = $_GET['periodo'] ?? date('Y-m');
@@ -17,6 +18,7 @@ $transacciones= getTransaccionesRecientes($pdo, 500);
 $gastosCat    = getGastosPorCategoria($pdo, $periodo);
 $balanceAnual = getBalanceAnual($pdo, $anio);
 $proyecciones = getProyeccionPorCategoria($pdo, $periodo);
+$mci          = getDesviacionCategoriasMCI($pdo, $periodo, 'mes', 'acumulado');
 
 $nombreMeses = ['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril',
                 '05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto',
@@ -399,6 +401,38 @@ foreach (($balanceAnual['meses'] ?? []) as $m) {
     $alt3 = !$alt3;
 }
 $xlsx->addSheet('Comparativo Mensual', $sheet4);
+
+// ─── SHEET 5: BITÁCORA MCI 2026 ──────────────────────────────────────────
+$sheet5 = [
+    ['__cols' => [25, 20, 20, 20, 20]],
+    ['__h'=>24, 'cells' => [cell("BITÁCORA MCI 2026 — ACUMULADO A $nombreMes", 7), empty_cell(7), empty_cell(7), empty_cell(7), empty_cell(7)]],
+    ['cells' => array_fill(0, 5, empty_cell())],
+    hdr([cell('Categoría',1), cell('Meta Anual',1), cell('Estimado',1), cell('Ejecutado',1), cell('Diferencia',1)]),
+];
+
+$alt4 = false;
+foreach (($mci['detalles'] ?? []) as $d) {
+    $ts = $alt4 ? 5 : 0; 
+    $ms = $alt4 ? 6 : 3;
+    $sheet5[] = ['cells' => [
+        cell($d['nombre'], $ts),
+        num($d['mci_anual'], $ms),
+        num($d['estimado'], $ms),
+        num($d['ejecutado'], $ms),
+        num(abs($d['diferencia']), $ms)
+    ]];
+    $alt4 = !$alt4;
+}
+$sheet5[] = ['cells' => array_fill(0, 5, empty_cell())];
+$totM = $mci['totales'] ?? [];
+$sheet5[] = ['__h'=>18, 'cells' => [
+    cell('TOTAL ACUMULADO', 1), 
+    num($totM['mci_anual'] ?? 0, 8), 
+    num($totM['estimado'] ?? 0, 8), 
+    num($totM['ejecutado'] ?? 0, 8), 
+    num(abs($totM['diferencia'] ?? 0), 10)
+]];
+$xlsx->addSheet('Bitacora MCI', $sheet5);
 
 // ─── SALIDA ───────────────────────────────────────────────────────────────
 $filename = "Reporte_Financiero_{$anio}-{$mes}.xlsx";
