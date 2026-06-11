@@ -298,7 +298,7 @@ require_once __DIR__ . '/includes/db.php';
                         <span class="panel-title">Cumplimiento por Proceso</span>
                     </div>
                     <div class="transactions-table-wrapper" style="border:1px solid var(--panel-border); border-radius:12px; overflow-x:auto;">
-                        <table class="transactions-table" style="font-size:0.85rem;" id="mci-table-cumplimiento">
+                        <table class="transactions-table table-compact" style="font-size:0.85rem;" id="mci-table-cumplimiento">
                             <thead>
                                 <tr>
                                     <th>CATEGORÍA</th>
@@ -332,7 +332,7 @@ require_once __DIR__ . '/includes/db.php';
                         <span class="panel-title">Desviación del Estimado</span>
                     </div>
                     <div class="transactions-table-wrapper" style="border:1px solid var(--panel-border); border-radius:12px; overflow-x:auto;">
-                        <table class="transactions-table" style="font-size:0.85rem;" id="mci-table-desviacion">
+                        <table class="transactions-table table-compact" style="font-size:0.85rem;" id="mci-table-desviacion">
                             <thead>
                                 <tr>
                                     <th>CATEGORÍA</th>
