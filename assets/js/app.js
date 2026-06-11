@@ -872,6 +872,9 @@ function refreshMciDashboard(periodo) {
                 // Actualizar gráficas ECharts
                 if (AppCharts.mciAvance) AppCharts.updateMciAvance(data.mci_desviacion.detalles, data.mci_desviacion.totales);
                 if (AppCharts.mciBarHorizontal) AppCharts.updateMciBarHorizontal(data.mci_desviacion.detalles);
+                
+                // Re-renderizar iconos en las tablas recién creadas
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         })
         .catch(e => console.error("Error loading MCI Dashboard:", e));
@@ -966,7 +969,7 @@ function renderMciPivotTable(matriz) {
     if (!theadCats || !tbody || !matriz) return;
     
     // Render headers
-    theadCats.outerHTML = matriz.categorias.map(c => `<th style="text-align:right;">${c.nombre.toUpperCase()}</th>`).join('') + '<th style="text-align:right;">TOTAL</th>';
+    theadCats.innerHTML = matriz.categorias.map(c => `<th style="text-align:right;">${c.nombre.toUpperCase()}</th>`).join('') + '<th style="text-align:right;">TOTAL</th>';
     
     // Render body
     tbody.innerHTML = '';
