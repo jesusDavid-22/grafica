@@ -16,7 +16,7 @@ $mes     = substr($periodo, 5, 2);
 $kpis         = getDashboardKPIs($pdo, $periodo);
 $transacciones= getTransaccionesRecientes($pdo, 500);
 $gastosCat    = getGastosPorCategoria($pdo, $periodo);
-$balanceAnual = getBalanceAnual($pdo, $anio);
+$balanceAnual = getBalanceAnual($pdo, $anio, 'anio');
 $proyecciones = getProyeccionPorCategoria($pdo, $periodo);
 $mci          = getDesviacionCategoriasMCI($pdo, $periodo, 'mes', 'acumulado');
 
@@ -393,7 +393,7 @@ foreach (($balanceAnual['meses'] ?? []) as $m) {
     $bal = $m['ingresos'] - $m['gastos'];
     $ts = $alt3 ? 5 : 0; $ms = $alt3 ? 6 : 3;
     $sheet4[] = ['cells' => [
-        cell($m['mes'], $ts),
+        cell($m['label'] ?? '', $ts),
         num($m['ingresos'], $alt3 ? 6 : 10),
         num($m['gastos'], $ms),
         num($bal, $bal >= 0 ? ($alt3 ? 6 : 10) : $ms),

@@ -130,15 +130,19 @@ function getDashboardKPIs($pdo, $periodo, $filtro = 'mes') {
  */
 function getGastosPorCategoria($pdo, $periodo, $vista = 'mes') {
     $filtro = ($vista === 'anio') ? substr($periodo, 0, 4) : $periodo;
+    $anio = substr($periodo, 0, 4);
     
     $stmt = $pdo->prepare("
-        SELECT c.nombre, c.color, c.icono, COALESCE(SUM(g.monto), 0) as total
+        SELECT c.id, c.nombre, c.color, c.icono, 
+               COALESCE(SUM(g.monto), 0) as total,
+               COALESCE(mc.valor_meta, 0) as meta_cat
         FROM categorias c
         LEFT JOIN gastos g ON c.id = g.categoria_id AND g.fecha LIKE :filtro || '%'
+        LEFT JOIN metas_categoria mc ON c.id = mc.categoria_id AND mc.anio = :anio
         GROUP BY c.id
         ORDER BY total DESC
     ");
-    $stmt->execute([':filtro' => $filtro]);
+    $stmt->execute([':filtro' => $filtro, ':anio' => $anio]);
     return $stmt->fetchAll();
 }
 
