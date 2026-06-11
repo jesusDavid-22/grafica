@@ -83,23 +83,14 @@ try {
         case 'get_mci_dashboard':
             $periodo = $request['periodo'] ?? date('Y-m');
             $vista   = $request['vista'] ?? 'mes';
+            $modo    = $request['modo'] ?? 'acumulado';
             $anio = substr($periodo, 0, 4);
             $mes = (int)substr($periodo, 5, 2);
             
-            if ($vista === 'anio') {
-                $mes_limite = 12;
-            } elseif ($vista === 'trimestre') {
-                $mes_limite = ceil($mes / 3) * 3;
-            } elseif ($vista === 'dia') {
-                $mes_limite = $mes;
-            } else {
-                $mes_limite = $mes;
-            }
-
             $response = [
                 'success' => true,
                 'kpis' => getDashboardKPIs($pdo, $periodo, $vista),
-                'mci_desviacion' => getDesviacionCategoriasMCI($pdo, $periodo, $vista),
+                'mci_desviacion' => getDesviacionCategoriasMCI($pdo, $periodo, $vista, $modo),
                 'mci_matriz' => getMatrizMCI($pdo, $anio)
             ];
             break;

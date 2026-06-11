@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Cargar Período Actual y Enlazar Eventos
     const periodPicker = document.getElementById('global-period-picker');
     if (periodPicker) {
+        // Inicializar filtro global visual y lógica
+        const defaultBtn = document.querySelector('.global-filters .filter-btn[data-filtro="mes"]');
+        setFiltroGlobal('mes', defaultBtn);
+        
         // Cargar datos al iniciar
         refreshDashboardData(periodPicker.value);
 
@@ -58,6 +62,30 @@ document.addEventListener('DOMContentLoaded', () => {
         AppCharts.metaVsEjec?.resize();
         AppCharts.comparativo?.resize();
     });
+
+    // Configurar toggle de Ahorro MCI
+    const btnAcumulado = document.getElementById('btn-ahorro-acumulado');
+    const btnAislado = document.getElementById('btn-ahorro-aislado');
+    
+    if (btnAcumulado && btnAislado) {
+        btnAcumulado.addEventListener('click', (e) => {
+            modoAhorroMci = 'acumulado';
+            e.target.style.background = 'white';
+            e.target.style.color = '#047857';
+            btnAislado.style.background = 'transparent';
+            btnAislado.style.color = 'white';
+            refreshMciDashboard(document.getElementById('global-period-picker').value);
+        });
+
+        btnAislado.addEventListener('click', (e) => {
+            modoAhorroMci = 'aislado';
+            e.target.style.background = 'white';
+            e.target.style.color = '#047857';
+            btnAcumulado.style.background = 'transparent';
+            btnAcumulado.style.color = 'white';
+            refreshMciDashboard(document.getElementById('global-period-picker').value);
+        });
+    }
 
     // 6. Iniciar Auto-Refresh
     startAutoRefresh();
@@ -256,9 +284,20 @@ function switchTrendView(vista) {
  * Cambia el período consultado y actualiza todo el dashboard.
  */
 let currentFiltro = 'mes'; // filtro activo global
+let modoAhorroMci = 'acumulado'; // 'acumulado' o 'aislado'
 
 function setFiltroGlobal(filtro, btn) {
     currentFiltro = filtro;
+    
+    // Mostrar/ocultar toggle de ahorro según vista
+    const toggleContainer = document.getElementById('ahorro-toggle-container');
+    if (toggleContainer) {
+        if (filtro === 'mes' || filtro === 'trimestre') {
+            toggleContainer.style.display = 'flex';
+        } else {
+            toggleContainer.style.display = 'none';
+        }
+    }
 
     // Actualizar estilos de botones
     document.querySelectorAll('.global-filters .filter-btn').forEach(b => b.classList.remove('active'));
@@ -500,6 +539,16 @@ function renderLedgerTable(transacciones) {
     
     lucide.createIcons();
     
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const vista = e.target.dataset.vista;
+            if (vista) {
+                setFiltroGlobal(vista, e.target);
+                refreshDashboardData();
+            }
+        });
+    });
+
     // Agregar event listeners a los botones de editar y eliminar
     document.querySelectorAll('.tx-action-btn.edit').forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -812,7 +861,7 @@ function initGlassPanelsHoverEffect() {
  * Carga los datos específicos para el tablero MCI 2026
  */
 function refreshMciDashboard(periodo) {
-    fetch(`api.php?action=get_mci_dashboard&periodo=${periodo}&vista=${currentFiltro}&_t=${Date.now()}`)
+    fetch(`api.php?action=get_mci_dashboard&periodo=${periodo}&vista=${currentFiltro}&modo=${modoAhorroMci}&_t=${Date.now()}`)
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -863,9 +912,9 @@ function renderMciTables(desviacion) {
         tbodyCump.innerHTML += `
             <tr>
                 <td style="font-weight:600;">${d.nombre.toUpperCase()}</td>
-                <td style="text-align:right;">$ ${d.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
-                <td style="text-align:right;">$ ${d.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
-                <td style="text-align:right;">${pct.toFixed(0)}%</td>
+                <td style="text-align:right; white-space:nowrap;">$ ${d.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+                <td style="text-align:right; white-space:nowrap;">$ ${d.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+                <td style="text-align:right; white-space:nowrap;">${pct.toFixed(0)}%</td>
             </tr>
         `;
     });
@@ -876,9 +925,9 @@ function renderMciTables(desviacion) {
     tbodyCump.innerHTML += `
         <tr style="background:rgba(255,255,255,0.05); font-weight:bold;">
             <td>TOTAL</td>
-            <td style="text-align:right;">$ ${t.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
-            <td style="text-align:right;">$ ${t.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
-            <td style="text-align:right;">${tPct.toFixed(0)}%</td>
+            <td style="text-align:right; white-space:nowrap;">$ ${t.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+            <td style="text-align:right; white-space:nowrap;">$ ${t.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0})}</td>
+            <td style="text-align:right; white-space:nowrap;">${tPct.toFixed(0)}%</td>
         </tr>
     `;
     
@@ -888,10 +937,10 @@ function renderMciTables(desviacion) {
         tbodyDesv.innerHTML += `
             <tr>
                 <td style="font-weight:600; color:var(--text-primary);"><div style="display:flex;align-items:center;gap:0.4rem;">${semaforoHtml} ${d.nombre.toUpperCase()}</div></td>
-                <td style="text-align:right;">$ ${d.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
-                <td style="text-align:right;">$ ${d.estimado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
-                <td style="text-align:right;">$ ${d.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
-                <td style="text-align:right;">$ ${Math.abs(d.diferencia).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right; white-space:nowrap;">$ ${d.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right; white-space:nowrap;">$ ${d.estimado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right; white-space:nowrap;">$ ${d.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+                <td style="text-align:right; white-space:nowrap;">$ ${Math.abs(d.diferencia).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
             </tr>
         `;
     });
@@ -902,10 +951,10 @@ function renderMciTables(desviacion) {
     tbodyDesv.innerHTML += `
         <tr style="background:rgba(255,255,255,0.05); font-weight:800; font-size:0.9rem; color:var(--text-primary);">
             <td>TOTAL ACUMULADO ${mesName}</td>
-            <td style="text-align:right;">$ ${t.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
-            <td style="text-align:right;">$ ${t.estimado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
-            <td style="text-align:right;">$ ${t.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
-            <td style="text-align:right;">${iconTot} $ ${Math.abs(t.diferencia).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right; white-space:nowrap;">$ ${t.mci_anual.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right; white-space:nowrap;">$ ${t.estimado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right; white-space:nowrap;">$ ${t.ejecutado.toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
+            <td style="text-align:right; white-space:nowrap;">${iconTot} $ ${Math.abs(t.diferencia).toLocaleString('es-MX', {minimumFractionDigits:0, maximumFractionDigits:0})}</td>
         </tr>
     `;
 }
@@ -1615,8 +1664,8 @@ function loadBitacora() {
         });
     }
 
-    // Mostrar todas las transacciones del año, sin importar el mes seleccionado
-    fetch(`api.php?action=get_bitacora&anio=${anio}&categoria_id=${cat}`)
+    // Mostrar transacciones filtradas por año, mes y categoría
+    fetch(`api.php?action=get_bitacora&anio=${anio}&mes=${mes}&categoria_id=${cat}`)
     .then(r=>r.json()).then(d => {
         if(d.success) {
             const tbody = document.getElementById('bitacora-tbody');

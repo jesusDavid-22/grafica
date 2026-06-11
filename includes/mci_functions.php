@@ -57,20 +57,25 @@ function getMatrizMCI($pdo, $anio) {
 }
 
 // 2. Obtener Tabla de Desviación por Categoría (Ejecutado vs Estimado vs MCI)
-function getDesviacionCategoriasMCI($pdo, $periodo, $vista) {
+function getDesviacionCategoriasMCI($pdo, $periodo, $vista, $modo = 'acumulado') {
     $anio = substr($periodo, 0, 4);
     $mes = (int)substr($periodo, 5, 2);
     if (!$mes) $mes = (int)date('m');
 
+    $mes_inicio = 1;
     if ($vista === 'anio') {
         $mes_limite = 12;
     } elseif ($vista === 'trimestre') {
         $mes_limite = ceil($mes / 3) * 3;
+        if ($modo === 'aislado') $mes_inicio = $mes_limite - 2;
     } else { // mes o dia
         $mes_limite = $mes;
+        if ($modo === 'aislado') $mes_inicio = $mes;
     }
     
-    $fraccion_anio = $mes_limite / 12.0;
+    // Fraccion de año para estimar el presupuesto de ese periodo especifico
+    $meses_en_rango = ($mes_limite - $mes_inicio) + 1;
+    $fraccion_anio = $meses_en_rango / 12.0;
     
     $stmt = $pdo->prepare("
         SELECT 
@@ -80,6 +85,7 @@ function getDesviacionCategoriasMCI($pdo, $periodo, $vista) {
                 (SELECT SUM(monto) FROM gastos g 
                  WHERE g.categoria_id = c.id 
                  AND strftime('%Y', g.fecha) = :anio
+                 AND CAST(strftime('%m', g.fecha) AS INTEGER) >= :mes_inicio
                  AND CAST(strftime('%m', g.fecha) AS INTEGER) <= :mes_limite
                 ), 0
             ) as ejecutado
@@ -88,7 +94,7 @@ function getDesviacionCategoriasMCI($pdo, $periodo, $vista) {
         WHERE c.id >= 11 AND c.id <= 16
         ORDER BY c.id
     ");
-    $stmt->execute([':anio' => $anio, ':mes_limite' => $mes_limite]);
+    $stmt->execute([':anio' => $anio, ':mes_inicio' => $mes_inicio, ':mes_limite' => $mes_limite]);
     $data = $stmt->fetchAll();
     
     $resultado = [];

@@ -157,7 +157,13 @@ require_once __DIR__ . '/includes/db.php';
                 
                 <!-- Ahorro $ -->
                 <div style="background:linear-gradient(135deg, #059669 0%, #047857 100%); color:white; border-radius:12px; padding:1.5rem; flex:1; min-width:200px; box-shadow:0 8px 20px rgba(5,150,105,0.3); border:2px solid rgba(255,255,255,0.1); position:relative; overflow:hidden;">
-                    <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:1px; z-index:2; position:relative;">Ahorro $</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem; z-index:2; position:relative;">
+                        <div style="font-size:1rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Ahorro $</div>
+                        <div id="ahorro-toggle-container" style="background:rgba(0,0,0,0.2); border-radius:20px; display:flex; padding:2px; font-size:0.75rem; display:none;">
+                            <button id="btn-ahorro-acumulado" style="padding:4px 8px; border-radius:18px; background:white; color:#047857; font-weight:bold; border:none; cursor:pointer; transition:all 0.2s;">Acumulado</button>
+                            <button id="btn-ahorro-aislado" style="padding:4px 8px; border-radius:18px; background:transparent; color:white; font-weight:bold; border:none; cursor:pointer; transition:all 0.2s;">Aislado</button>
+                        </div>
+                    </div>
                     <div id="mci-kpi-ahorro" style="font-size:clamp(1.5rem, 3vw, 2.5rem); font-weight:900; font-family:Outfit; text-align:right; z-index:2; position:relative; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">$--</div>
                     <i data-lucide="piggy-bank" style="position:absolute; bottom:-10px; left:-10px; width:100px; height:100px; color:rgba(255,255,255,0.1); pointer-events:none; transform:rotate(-15deg);"></i>
                 </div>
@@ -294,8 +300,8 @@ require_once __DIR__ . '/includes/db.php';
                         <table class="transactions-table" style="font-size:0.85rem;" id="mci-table-cumplimiento">
                             <thead>
                                 <tr>
-                                    <th>MES</th>
-                                    <th style="text-align:right;">ACUMULADO MAYO</th>
+                                    <th>CATEGORÍA</th>
+                                    <th style="text-align:right;">EJECUTADO</th>
                                     <th style="text-align:right;">META 2026</th>
                                     <th style="text-align:right;">CUMPLIMIENTO</th>
                                 </tr>
@@ -328,9 +334,9 @@ require_once __DIR__ . '/includes/db.php';
                         <table class="transactions-table" style="font-size:0.85rem;" id="mci-table-desviacion">
                             <thead>
                                 <tr>
-                                    <th>ACUMULADO A MAYO</th>
-                                    <th style="text-align:right;">MCI</th>
-                                    <th style="text-align:right;">ESTIMADO A MAYO</th>
+                                    <th>CATEGORÍA</th>
+                                    <th style="text-align:right;">META ANUAL</th>
+                                    <th style="text-align:right;">ESTIMADO</th>
                                     <th style="text-align:right;">EJECUTADO</th>
                                     <th style="text-align:right; width:100px;">DIFERENCIA</th>
                                 </tr>

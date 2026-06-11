@@ -134,57 +134,93 @@ const AppCharts = {
     updateMciAvance(detalles, totales) {
         if (!this.mciAvance || !detalles) return;
         
-        // Agregar "TOTAL" al final para replicar el Excel
-        const labels = detalles.map(d => d.nombre.toUpperCase()).concat(['TOTAL']);
-        const metas = detalles.map(d => d.mci_anual).concat([totales.mci_anual]);
-        const ejecutado = detalles.map(d => d.ejecutado).concat([totales.ejecutado]);
+        // Excluimos "TOTAL" para no romper la escala de la gráfica
+        const labels = detalles.map(d => d.nombre.toUpperCase());
+        const metas = detalles.map(d => d.mci_anual);
+        const ejecutado = detalles.map(d => d.ejecutado);
+
+        // Helper para abreviar millones (Ej: 1,000,000 -> 1M)
+        const formatMil = v => {
+            if (v >= 1000000) return '$' + (v / 1000000).toLocaleString('es-MX', {maximumFractionDigits:1}) + 'M';
+            return '$' + v.toLocaleString('es-MX', {maximumFractionDigits:0});
+        };
 
         this.mciAvance.setOption({
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'axis',
                 axisPointer: { type: 'shadow' },
-                backgroundColor: 'rgba(5,8,22,0.92)',
-                borderColor: 'rgba(99,102,241,0.3)',
-                textStyle: { color: '#F8FAFC' }
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                borderColor: 'rgba(16, 185, 129, 0.4)', // Borde esmeralda
+                textStyle: { color: '#F8FAFC' },
+                valueFormatter: value => '$ ' + value.toLocaleString('es-MX', {minimumFractionDigits:0})
             },
             legend: {
-                data: ['META 2026', 'ACUMULADO MAYO'],
+                data: ['META ANUAL', 'EJECUTADO'],
                 bottom: 0,
                 textStyle: { color: '#94A3B8', fontSize: 11, fontFamily: 'Outfit' }
             },
-            grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+            grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
             xAxis: {
                 type: 'category',
                 data: labels,
-                axisLabel: { color: '#64748b', fontSize: 9, fontFamily: 'Outfit', interval: 0, width: 80, overflow: 'break', rotate: 25 },
+                axisLabel: { color: '#94A3B8', fontSize: 9, fontFamily: 'Outfit', interval: 0, width: 80, overflow: 'break', rotate: 25 },
                 axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
             },
             yAxis: {
                 type: 'value',
                 axisLabel: {
                     color: '#64748b', fontSize: 10,
-                    formatter: v => '$' + v
+                    formatter: v => formatMil(v)
                 },
-                splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+                splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)', type: 'dashed' } }
             },
             series: [
                 {
-                    name: 'META 2026',
+                    name: 'META ANUAL',
                     type: 'bar',
                     data: metas,
-                    barWidth: '30%',
-                    itemStyle: { color: '#2e7d32', borderRadius: [4,4,0,0] } // Verde oscuro tipo excel
+                    barWidth: '35%',
+                    itemStyle: { 
+                        borderRadius: [6,6,0,0],
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#10B981' }, // Verde esmeralda brillante
+                            { offset: 1, color: '#047857' }  // Verde oscuro
+                        ])
+                    }
                 },
                 {
-                    name: 'ACUMULADO MAYO',
+                    name: 'EJECUTADO',
                     type: 'line',
                     data: ejecutado,
                     symbol: 'circle',
-                    symbolSize: 8,
-                    itemStyle: { color: '#1976d2' }, // Azul claro tipo excel
-                    lineStyle: { color: '#1976d2', width: 3 },
-                    label: { show: true, position: 'top', color: '#1976d2', formatter: p => '$' + p.value, fontSize: 10 }
+                    symbolSize: 10,
+                    itemStyle: { 
+                        color: '#60A5FA', 
+                        borderColor: '#FFFFFF', 
+                        borderWidth: 2,
+                        shadowColor: 'rgba(96, 165, 250, 0.6)', 
+                        shadowBlur: 8 
+                    },
+                    lineStyle: { 
+                        color: '#3B82F6', 
+                        width: 4,
+                        shadowColor: 'rgba(59, 130, 246, 0.4)',
+                        shadowBlur: 10,
+                        shadowOffsetY: 5
+                    },
+                    label: { 
+                        show: true, 
+                        position: 'top', 
+                        distance: 8,
+                        color: '#F8FAFC',
+                        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                        padding: [4, 6],
+                        borderRadius: 4,
+                        formatter: p => formatMil(p.value), 
+                        fontSize: 10,
+                        fontWeight: 'bold'
+                    }
                 }
             ]
         }, true);
