@@ -969,7 +969,7 @@ function renderMciPivotTable(matriz) {
     if (!theadCats || !tbody || !matriz) return;
     
     // Render headers
-    theadCats.innerHTML = matriz.categorias.map(c => `<th style="text-align:right;">${c.nombre.toUpperCase()}</th>`).join('') + '<th style="text-align:right;">TOTAL</th>';
+    theadCats.innerHTML = '<th style="width:60px;">AÑO</th><th style="width:100px;">MES</th>' + matriz.categorias.map(c => `<th style="text-align:right;">${c.nombre.toUpperCase()}</th>`).join('') + '<th style="text-align:right;">TOTAL</th>';
     
     // Render body
     tbody.innerHTML = '';

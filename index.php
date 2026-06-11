@@ -735,11 +735,11 @@ require_once __DIR__ . '/includes/db.php';
                 <div class="transactions-table-wrapper" style="border:1px solid var(--panel-border); border-radius:12px; overflow-x:auto;">
                     <table class="transactions-table" id="mci-pivot-table" style="font-size:0.85rem;">
                         <thead>
-                            <tr style="background:rgba(255,255,255,0.05);">
+                            <tr style="background:rgba(255,255,255,0.05);" id="mci-pivot-cat-headers">
                                 <th style="width:60px;">AÑO</th>
                                 <th style="width:100px;">MES</th>
                                 <!-- Las categorías se generarán dinámicamente -->
-                                <th id="mci-pivot-cat-headers"></th>
+                                
                             </tr>
                         </thead>
                         <tbody id="mci-pivot-tbody">
