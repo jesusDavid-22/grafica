@@ -2188,7 +2188,7 @@ function submitBulkData() {
             document.getElementById('bulk-preview-container').style.display = 'none';
             document.getElementById('bulk-file-input').value = '';
             bulkDataToSubmit = [];
-            refreshDashboardData(); // Refrescar los gráficos
+            if (targetId === "dashboard") { refreshDashboardData(); window.scrollTo({ top: 0, behavior: "smooth" }); } else { setTimeout(() => { const section = document.getElementById(targetId); if (section) { const offset = 80; const bodyRect = document.body.getBoundingClientRect().top; const elementRect = section.getBoundingClientRect().top; window.scrollTo({ top: elementRect - bodyRect - offset, behavior: "smooth" }); } }, 50); }
             
             // Volver al dashboard
             document.querySelector('a.nav-item[href="#dashboard"]').click();
@@ -2294,7 +2294,7 @@ function initNavigation() {
             } else {
                 cargaMasiva.style.display = 'none';
                 dashView.style.display = 'block';
-                refreshDashboardData(); // Refresca el título y datos
+                if (targetId === "dashboard") { refreshDashboardData(); window.scrollTo({ top: 0, behavior: "smooth" }); } else { setTimeout(() => { const section = document.getElementById(targetId); if (section) { const offset = 80; const bodyRect = document.body.getBoundingClientRect().top; const elementRect = section.getBoundingClientRect().top; window.scrollTo({ top: elementRect - bodyRect - offset, behavior: "smooth" }); } }, 50); }
             }
         });
     });

@@ -146,8 +146,8 @@ require_once __DIR__ . '/includes/db.php';
             </div>
 
             <!-- ── KPIs GRID ─────────────────────────────────────── -->
-            <!-- KPIs MCI 2026 SUPERIORES -->
-            <section style="display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1.5rem; margin-bottom:1.5rem;">
+            <!-- Seccion MCI 2026 -->
+            <section id="metas" style="display:flex; flex-wrap:wrap; gap:1.5rem; margin-top:1.5rem; margin-bottom:1.5rem;">
                 <!-- Avance MCI -->
                 <div style="background:var(--primary); color:white; border-radius:12px; padding:1.5rem; flex:1; min-width:200px; box-shadow:0 8px 20px rgba(99,102,241,0.3); border:2px solid rgba(255,255,255,0.1); position:relative; overflow:hidden;">
                     <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:1px; z-index:2; position:relative;">Avance MCI</div>
@@ -169,7 +169,8 @@ require_once __DIR__ . '/includes/db.php';
                 </div>
             </section>
 
-            <section class="kpis-grid">
+            <!-- Tarjetas de KPIs Generales -->
+            <section id="procesos" class="kpis-grid">
                 
                 <div class="glass-panel kpi-card" id="card-presupuesto">
                     <div class="kpi-header">
@@ -350,7 +351,8 @@ require_once __DIR__ . '/includes/db.php';
 
             </section>
 
-            <section class="dashboard-grid" style="margin-top:2.5rem;">
+            <!-- GAUGE + TENDENCIAS -->
+            <section id="historico" class="dashboard-grid" style="margin-top:2.5rem;">
                 
                 <div class="glass-panel chart-panel">
                     <div class="panel-header">

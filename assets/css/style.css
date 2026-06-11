@@ -2629,3 +2629,4 @@ select.form-control option {
         width: 100% !important;
     }
 }
+html { scroll-behavior: smooth; }
