@@ -1847,6 +1847,10 @@ function guardarMetaCat(catId, anio) {
 // ============================================================================
 // EXPORTAR EXCEL PROFESIONAL (PHP endpoint)
 // ============================================================================
+function exportarBitacoraMCI() {
+    exportExcelProfesional();
+}
+
 function exportExcelProfesional() {
     const periodo = document.getElementById('global-period-picker').value;
     showToast('Generando reporte Excel profesional...', 'info', 2000);
