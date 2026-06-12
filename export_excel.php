@@ -112,8 +112,8 @@ class SimpleXlsx {
     </border>
   </borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="12">
-    <xf numFmtId="0"   fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+  <cellXfs count="13">
+    <xf numFmtId="0"   fontId="0" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="0"   fontId="3" fillId="2" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>
     <xf numFmtId="0"   fontId="3" fillId="3" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
     <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"><alignment horizontal="right"/></xf>
@@ -125,6 +125,7 @@ class SimpleXlsx {
     <xf numFmtId="0"   fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>
     <xf numFmtId="164" fontId="5" fillId="5" borderId="1" xfId="0" applyFill="1" applyFont="1" applyNumberFormat="1" applyBorder="1"><alignment horizontal="right"/></xf>
     <xf numFmtId="0"   fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>
+    <xf numFmtId="0"   fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
   </cellXfs>
 </styleSheet>
 XML;
@@ -288,11 +289,11 @@ XML;
 // ─── STYLE CONSTANTS ──────────────────────────────────────────────────────
 // s=0 default | s=1 header-dark | s=2 header-medium | s=3 money | s=4 pct
 // s=5 alt-row  | s=6 alt-money  | s=7 title         | s=8 total-money
-// s=9 muted    | s=10 green-money| s=11 bold-text
+// s=9 muted    | s=10 green-money| s=11 bold-text | s=12 normal-border
 
-function cell(string $v, int $s=0): array { return ['v'=>$v,'t'=>'s','s'=>$s]; }
+function cell(string $v, int $s=12): array { return ['v'=>$v,'t'=>'s','s'=>$s]; }
 function num(float $v, int $s=3):  array { return ['v'=>$v,'t'=>'n','s'=>$s]; }
-function empty_cell(int $s=0):     array { return ['v'=>'','t'=>'s','s'=>$s]; }
+function empty_cell(int $s=12):     array { return ['v'=>'','t'=>'s','s'=>$s]; }
 
 function hdr(array $cells): array  { return ['cells'=>$cells]; }
 function alt(array $cells, bool $isAlt): array {
@@ -342,7 +343,7 @@ foreach ($transacciones as $tx) {
     $isGasto = $tx['tipo'] === 'gasto';
     if ($isGasto) $totalG += $monto; else $totalI += $monto;
     $montoStyle = $alt ? 6 : 3;
-    $txtStyle   = $alt ? 5 : 0;
+    $txtStyle   = $alt ? 5 : 12;
     $sheet2[] = ['cells' => [
         cell($tx['fecha'], $txtStyle),
         cell($isGasto ? 'GASTO' : 'INGRESO', $txtStyle),
@@ -369,7 +370,7 @@ $sheet3 = [
 $alt2 = false;
 foreach ($proyecciones as $p) {
     $pctVal = $p['proyeccion'] > 0 ? round($p['ejecutado'] / $p['proyeccion'] * 100, 1) : 0;
-    $ts = $alt2 ? 5 : 0; $ms = $alt2 ? 6 : 3;
+    $ts = $alt2 ? 5 : 12; $ms = $alt2 ? 6 : 3;
     $semStr = $pctVal > 100 ? '🔴' : ($pctVal > 80 ? '🟡' : '🟢');
     $sheet3[] = ['cells' => [
         cell($semStr . ' ' . $p['nombre'], $ts),
@@ -392,7 +393,7 @@ $sheet4 = [
 $alt3 = false;
 foreach (($balanceAnual['meses'] ?? []) as $m) {
     $bal = $m['ingresos'] - $m['gastos'];
-    $ts = $alt3 ? 5 : 0; $ms = $alt3 ? 6 : 3;
+    $ts = $alt3 ? 5 : 12; $ms = $alt3 ? 6 : 3;
     $sheet4[] = ['cells' => [
         cell($m['label'] ?? '', $ts),
         num($m['ingresos'], $alt3 ? 6 : 10),
@@ -413,7 +414,7 @@ $sheet5 = [
 
 $alt4 = false;
 foreach (($mci['detalles'] ?? []) as $d) {
-    $ts = $alt4 ? 5 : 0; 
+    $ts = $alt4 ? 5 : 12; 
     $ms = $alt4 ? 6 : 3;
     $sheet5[] = ['cells' => [
         cell($d['nombre'], $ts),
