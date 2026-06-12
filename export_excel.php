@@ -330,7 +330,7 @@ $xlsx->addSheet('Dashboard KPIs', $sheet1);
 
 // ─── SHEET 2: TRANSACCIONES DETALLADAS ───────────────────────────────────
 $sheet2 = [
-    ['__cols' => [13, 10, 38, 22, 16]],
+    ['__cols' => [15, 12, 38, 22, 22]],
     ['__h'=>24, 'cells' => [cell("DETALLE DE TRANSACCIONES — $periodoLabel", 7), empty_cell(7), empty_cell(7), empty_cell(7), empty_cell(7)]],
     ['cells' => array_fill(0, 5, empty_cell())],
     hdr([cell('Fecha',1), cell('Tipo',1), cell('Concepto',1), cell('Categoría',1), cell('Monto',1)]),
