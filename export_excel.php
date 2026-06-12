@@ -100,9 +100,9 @@ class SimpleXlsx {
   <fills count="6">
     <fill><patternFill patternType="none"/></fill>
     <fill><patternFill patternType="gray125"/></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/></patternFill></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFBFDBFE"/></patternFill></fill>
-    <fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFCBD5E1"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFD1D5DB"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF3F4F6"/></patternFill></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FFE8F5E9"/></patternFill></fill>
   </fills>
   <borders count="2">
