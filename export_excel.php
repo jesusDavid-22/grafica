@@ -86,12 +86,15 @@ class SimpleXlsx {
     <numFmt numFmtId="165" formatCode="0.0&quot;%&quot;"/>
     <numFmt numFmtId="166" formatCode="&quot;\$&quot;#,##0;[Red]-&quot;\$&quot;#,##0"/>
   </numFmts>
-  <fonts count="6">
+  <fonts count="9">
     <font><sz val="11"/><name val="Calibri"/></font>
     <font><b/><sz val="11"/><name val="Calibri"/></font>
     <font><b/><sz val="14"/><name val="Calibri"/><color rgb="FF1A1A2E"/></font>
     <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font>
     <font><sz val="10"/><name val="Calibri"/><color rgb="FF64748B"/></font>
+    <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FF10B981"/></font>
+    <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFEF4444"/></font>
+    <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFF59E0B"/></font>
     <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FF10B981"/></font>
   </fonts>
   <fills count="6">
@@ -113,7 +116,7 @@ class SimpleXlsx {
     </border>
   </borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="13">
+  <cellXfs count="16">
     <xf numFmtId="0"   fontId="0" fillId="0" borderId="0" xfId="0"/>
     <xf numFmtId="0"   fontId="3" fillId="2" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>
     <xf numFmtId="0"   fontId="3" fillId="3" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
@@ -127,6 +130,9 @@ class SimpleXlsx {
     <xf numFmtId="164" fontId="5" fillId="5" borderId="1" xfId="0" applyFill="1" applyFont="1" applyNumberFormat="1" applyBorder="1"><alignment horizontal="right"/></xf>
     <xf numFmtId="0"   fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>
     <xf numFmtId="0"   fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+    <xf numFmtId="0"   fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>
+    <xf numFmtId="0"   fontId="7" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>
+    <xf numFmtId="0"   fontId="8" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>
   </cellXfs>
 </styleSheet>
 XML;
@@ -378,14 +384,19 @@ if (empty($proyecciones)) {
 } else {
     foreach ($proyecciones as $p) {
         $pctVal = $p['proyeccion'] > 0 ? round($p['ejecutado'] / $p['proyeccion'] * 100, 1) : 0;
-        $ts = $alt2 ? 5 : 12; $ms = $alt2 ? 6 : 3;
-        $semStr = $pctVal > 100 ? '🔴' : ($pctVal > 80 ? '🟡' : '🟢');
+        
+        if ($pctVal > 100) { $ts = 13; $semChar = '●'; }
+        elseif ($pctVal > 80) { $ts = 14; $semChar = '●'; }
+        else { $ts = 15; $semChar = '●'; }
+
+        $ms = $alt2 ? 6 : 3;
+        
         $sheet3[] = ['cells' => [
-            cell($semStr . ' ' . $p['nombre'], $ts),
+            cell($semChar . ' ' . $p['nombre'], $ts),
             num($p['ejecutado'], $ms),
             num($p['prom_diario'], $ms),
             num($p['proyeccion'], $ms),
-            cell(number_format($pctVal,1).'%', $alt2 ? 5 : 12),
+            cell(number_format($pctVal,1).'%', $ts),
         ]];
         $alt2 = !$alt2;
     }
