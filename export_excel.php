@@ -304,7 +304,7 @@ $semaforo = $kpis['semaforo'] ?? 'verde';
 $semaforoLabel = $semaforo === 'rojo' ? '🔴 ALERTA' : ($semaforo === 'amarillo' ? '🟡 PRECAUCIÓN' : '🟢 ÓPTIMO');
 
 $sheet1 = [
-    ['__cols' => [42, 22, 22, 18]],
+    ['__cols' => [45, 26, 26, 20]],
     ['__h'=>28, 'cells' => [cell("REPORTE FINANCIERO EJECUTIVO — $periodoLabel", 7), empty_cell(7), empty_cell(7), empty_cell(7)]],
     ['cells' => [cell('Generado: ' . date('d/M/Y H:i'), 9), empty_cell(), empty_cell(), empty_cell()]],
     ['cells' => array_fill(0, 4, empty_cell())],
@@ -361,7 +361,7 @@ $xlsx->addSheet('Transacciones', $sheet2);
 
 // ─── SHEET 3: PROYECCIÓN POR CATEGORÍA ───────────────────────────────────
 $sheet3 = [
-    ['__cols' => [28, 18, 16, 18, 12]],
+    ['__cols' => [35, 22, 22, 22, 18]],
     ['__h'=>24, 'cells' => [cell("PROYECCIÓN POR CATEGORÍA — $periodoLabel", 7), empty_cell(7), empty_cell(7), empty_cell(7), empty_cell(7)]],
     ['cells' => array_fill(0, 5, empty_cell())],
     hdr([cell('Categoría',1), cell('Ejecutado',1), cell('Prom. Diario',1), cell('Proyección Fin Mes',1), cell('% Ejecución',1)]),
