@@ -14,7 +14,8 @@ $mes     = substr($periodo, 5, 2);
 
 // ── Datos ──────────────────────────────────────────────────────────────────
 $kpis         = getDashboardKPIs($pdo, $periodo);
-$transacciones= getTransaccionesRecientes($pdo, 500);
+$transacciones_all = getTransaccionesRecientes($pdo, 5000);
+$transacciones= array_filter($transacciones_all, fn($t) => substr($t['fecha'], 0, 7) === $periodo);
 $gastosCat    = getGastosPorCategoria($pdo, $periodo);
 $balanceAnual = getBalanceAnual($pdo, $anio, 'anio');
 $proyecciones = getProyeccionPorCategoria($pdo, $periodo);
@@ -338,20 +339,24 @@ $sheet2 = [
 ];
 
 $totalG = 0; $totalI = 0; $alt = false;
-foreach ($transacciones as $tx) {
-    $monto = (float)$tx['monto'];
-    $isGasto = $tx['tipo'] === 'gasto';
-    if ($isGasto) $totalG += $monto; else $totalI += $monto;
-    $montoStyle = $alt ? 6 : 3;
-    $txtStyle   = $alt ? 5 : 12;
-    $sheet2[] = ['cells' => [
-        cell($tx['fecha'], $txtStyle),
-        cell($isGasto ? 'GASTO' : 'INGRESO', $txtStyle),
-        cell($tx['concepto'], $txtStyle),
-        cell($tx['categoria'] ?? 'Ingreso', $txtStyle),
-        num($isGasto ? -$monto : $monto, $montoStyle),
-    ]];
-    $alt = !$alt;
+if (empty($transacciones)) {
+    $sheet2[] = ['cells' => [cell('No hay transacciones registradas en este período.', 12), empty_cell(), empty_cell(), empty_cell(), empty_cell()]];
+} else {
+    foreach ($transacciones as $tx) {
+        $monto = (float)$tx['monto'];
+        $isGasto = $tx['tipo'] === 'gasto';
+        if ($isGasto) $totalG += $monto; else $totalI += $monto;
+        $montoStyle = $alt ? 6 : 3;
+        $txtStyle   = $alt ? 5 : 12;
+        $sheet2[] = ['cells' => [
+            cell($tx['fecha'], $txtStyle),
+            cell($isGasto ? 'GASTO' : 'INGRESO', $txtStyle),
+            cell($tx['concepto'], $txtStyle),
+            cell($tx['categoria'] ?? 'Ingreso', $txtStyle),
+            num($isGasto ? -$monto : $monto, $montoStyle),
+        ]];
+        $alt = !$alt;
+    }
 }
 $sheet2[] = ['cells' => array_fill(0, 5, empty_cell())];
 $sheet2[] = ['__h'=>18, 'cells' => [empty_cell(1), empty_cell(1), empty_cell(1), cell('Total Gastos:', 1), num(-$totalG, 8)]];
@@ -368,18 +373,22 @@ $sheet3 = [
     hdr([cell('Categoría',1), cell('Ejecutado',1), cell('Prom. Diario',1), cell('Proyección Fin Mes',1), cell('% Ejecución',1)]),
 ];
 $alt2 = false;
-foreach ($proyecciones as $p) {
-    $pctVal = $p['proyeccion'] > 0 ? round($p['ejecutado'] / $p['proyeccion'] * 100, 1) : 0;
-    $ts = $alt2 ? 5 : 12; $ms = $alt2 ? 6 : 3;
-    $semStr = $pctVal > 100 ? '🔴' : ($pctVal > 80 ? '🟡' : '🟢');
-    $sheet3[] = ['cells' => [
-        cell($semStr . ' ' . $p['nombre'], $ts),
-        num($p['ejecutado'], $ms),
-        num($p['prom_diario'], $ms),
-        num($p['proyeccion'], $ms),
-        cell(number_format($pctVal,1).'%', $alt2 ? 5 : 0),
-    ]];
-    $alt2 = !$alt2;
+if (empty($proyecciones)) {
+    $sheet3[] = ['cells' => [cell('No hay datos registrados para este período.', 12), empty_cell(), empty_cell(), empty_cell(), empty_cell()]];
+} else {
+    foreach ($proyecciones as $p) {
+        $pctVal = $p['proyeccion'] > 0 ? round($p['ejecutado'] / $p['proyeccion'] * 100, 1) : 0;
+        $ts = $alt2 ? 5 : 12; $ms = $alt2 ? 6 : 3;
+        $semStr = $pctVal > 100 ? '🔴' : ($pctVal > 80 ? '🟡' : '🟢');
+        $sheet3[] = ['cells' => [
+            cell($semStr . ' ' . $p['nombre'], $ts),
+            num($p['ejecutado'], $ms),
+            num($p['prom_diario'], $ms),
+            num($p['proyeccion'], $ms),
+            cell(number_format($pctVal,1).'%', $alt2 ? 5 : 12),
+        ]];
+        $alt2 = !$alt2;
+    }
 }
 $xlsx->addSheet('Proyeccion Categorias', $sheet3);
 
