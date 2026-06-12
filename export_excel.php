@@ -108,6 +108,7 @@ class SimpleXlsx {
       <right style="thin"><color rgb="FF000000"/></right>
       <top style="thin"><color rgb="FF000000"/></top>
       <bottom style="thin"><color rgb="FF000000"/></bottom>
+      <diagonal/>
     </border>
   </borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
