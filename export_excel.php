@@ -104,15 +104,15 @@ class SimpleXlsx {
   <borders count="2">
     <border><left/><right/><top/><bottom/><diagonal/></border>
     <border>
-      <left style="thin"><color rgb="FFE2E8F0"/></left>
-      <right style="thin"><color rgb="FFE2E8F0"/></right>
-      <top style="thin"><color rgb="FFE2E8F0"/></top>
-      <bottom style="thin"><color rgb="FFE2E8F0"/></bottom>
+      <left style="thin"><color rgb="FF000000"/></left>
+      <right style="thin"><color rgb="FF000000"/></right>
+      <top style="thin"><color rgb="FF000000"/></top>
+      <bottom style="thin"><color rgb="FF000000"/></bottom>
     </border>
   </borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
   <cellXfs count="12">
-    <xf numFmtId="0"   fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0"   fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
     <xf numFmtId="0"   fontId="3" fillId="2" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>
     <xf numFmtId="0"   fontId="3" fillId="3" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
     <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"><alignment horizontal="right"/></xf>
