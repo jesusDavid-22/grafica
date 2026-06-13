@@ -921,7 +921,7 @@ const AppCharts = {
                         fontFamily: 'Outfit' 
                     }
                 }]
-            });
+            }, true);
             setTimeout(() => this.donut?.resize(), 100);
             return;
         }
@@ -980,7 +980,7 @@ const AppCharts = {
                 data
             }]
         };
-        this.donut.setOption(option);
+        this.donut.setOption(option, true);
         
         // Remover evento previo para no duplicar
         this.donut.off('legendselectchanged');
