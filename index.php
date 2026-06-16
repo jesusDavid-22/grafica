@@ -106,7 +106,7 @@ require_once __DIR__ . '/includes/db.php';
                     <button class="btn btn-outline" onclick="exportarPDF()" title="Exportar PDF ejecutivo" style="display:none;">
                         <i data-lucide="file-text"></i> PDF
                     </button>
-                    <button class="btn btn-outline" onclick="window.print()">
+                    <button class="btn btn-outline" onclick="window.print()" style="display:none;">
                         <i data-lucide="printer"></i> Imprimir
                     </button>
                     <button class="btn btn-success" onclick="openModal('modal-ingreso')">
