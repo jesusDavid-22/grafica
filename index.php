@@ -103,7 +103,7 @@ require_once __DIR__ . '/includes/db.php';
                     <button class="btn btn-download-all" onclick="AppCharts.downloadAllCharts()" title="Descargar gráficas PNG">
                         <i data-lucide="download-cloud"></i> PNG
                     </button>
-                    <button class="btn btn-outline" onclick="exportarPDF()" title="Exportar PDF ejecutivo">
+                    <button class="btn btn-outline" onclick="exportarPDF()" title="Exportar PDF ejecutivo" style="display:none;">
                         <i data-lucide="file-text"></i> PDF
                     </button>
                     <button class="btn btn-outline" onclick="window.print()">
